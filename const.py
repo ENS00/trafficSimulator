@@ -10,7 +10,6 @@ pygame.init()
 TIME_SPEED = 200  # REAL 1s = GAME 200s
 FPS = 60
 
-
 # Variables
 FLOAT_PRECISION = 5
 
@@ -105,7 +104,6 @@ def ROTATE(side, pos, angle):
     _y = (side[0]-pos[0]) * sinTh + (side[1]-pos[1]) * cosTh
     side[0] = _x + pos[0]
     side[1] = _y + pos[1]
-
 
 # Images
 ICON_PATH = 'icon.ico'

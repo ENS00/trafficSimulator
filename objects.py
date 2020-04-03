@@ -1,6 +1,7 @@
 import const
 import position
 
+# Primary basic object with all common properties
 class GameObject():
     def __init__(self, game, color, degrees):
         self.id = game.idassigner.getNewID(self)
@@ -11,21 +12,26 @@ class GameObject():
         self.position = None
         self.color = color
 
+    # On draw it sets only the center
     def draw(self):
         self.position = self.graphic.center
-    
+
+    # On delete it calls the id assigner to remove it from the known objects
     def delete(self):
         self.game.idassigner.delete(self)
 
+# Basic shape with 4 sides
 class GameRect(GameObject):
     def __init__(self, game, color, points, degrees = 0):
-        super().__init__(game, color,degrees)
+        super().__init__(game, color, degrees)
         self.points = points
-    
+
+    # On draw gets the graphic object and then sets the center
     def draw(self):
         self.graphic = self.graphic_lib.graphic.draw.polygon(self.graphic_lib.screen, self.color, self.points)
         self.position = self.graphic.center
 
+    # Move every side (but not the center, it is modified only when it is drawn)
     def move(self, x, y):
         self.points[0][0] += x
         self.points[0][1] += y
@@ -35,7 +41,8 @@ class GameRect(GameObject):
         self.points[2][1] += y
         self.points[3][0] += x
         self.points[3][1] += y
-    
+
+    # It modifies the sides starting from a new given center, but doesn't modify the center
     def moveTo(self, position):
         x = position[0] - self.position[0]
         y = position[1] - self.position[1]
@@ -49,6 +56,7 @@ class GameRect(GameObject):
         self.points[3][0] += x
         self.points[3][1] += y
 
+    # Move every side with a specific rule in order to rotate the whole shape
     def rotate(self, angle, center = None):
         if angle!=0:
             self.degrees += angle
@@ -62,54 +70,56 @@ class GameRect(GameObject):
             const.ROTATE(self.points[2], center or self.position, angle)
             const.ROTATE(self.points[3], center or self.position, angle)
 
+# Basic object with a center and a radius
 class GameCircle(GameObject):
     def __init__(self, game, color, center, radius, degrees = 0):
         super().__init__(game, color, degrees)
         self.position = [round(center[0]), round(center[1])]
         self.radius = radius
-    
+
+    # On draw gets the graphic object and then sets the center
     def draw(self):
         self.graphic = self.graphic_lib.graphic.draw.circle(self.graphic_lib.screen, self.color, self.position, self.radius)
         self.position = self.graphic.center
-        
+
+    # Since the center is needed to draw the object, it's modified
     def move(self, x, y):
         self.position[0] = round(x) + self.position[0]
         self.position[1] = round(y) + self.position[1]
-            
-# a graphic object but we can add tags that better describe the object
+
+# It's a graphic object but we can add tags that better describe the object (and also it's generally static)
 class RoadObject(GameRect):
     def __init__(self, game, color, points, tags=[]):
         super().__init__(game, color, points)
         self.tags = tags
         self.firstDraw = True
 
+    # Checks if it has a specific tag property
     def isA(self, prop):
         if prop in self.tags:
             return True
         return False
 
-    def hasSameTags(self,obj):
-        if True in [True for prop in self.tags if not prop in obj.tags]:
-            return True
-        return False
-        
-    # This class that defines objects that determine areas where we want update the screen
+    # If it's the first time, tells the GL that it wants to update its screen area
     def draw(self):
         super().draw()
         if self.firstDraw:
             self.firstDraw = False
             self.game.graphic_lib.updateAreas.append(self.graphic)
 
+    # Before rotate the rect, tells to the GL that it has changed and needs to update his screen area
     def rotate(self, angle, center):
         self.game.graphic_lib.updateAreas.remove(self.graphic)
         self.firstDraw = True
         super().rotate(angle, center)
 
+    # Before move the rect, tells to the GL that it has changed and needs to update his screen area
     def move(self, x, y):
         self.game.graphic_lib.updateAreas.remove(self.graphic)
         self.firstDraw = True
         super().move(x, y)
 
+# Traffic light status indicator
 class Light(GameCircle):
     def __init__(self, game, tLight, position, color_type = const.TL_RED, state_on = False, radius = const.TL_LIGHT_SIZE):
         super().__init__(game, const.TL_COLORS[color_type][state_on], position, radius)
@@ -118,26 +128,29 @@ class Light(GameCircle):
         self.tLight = tLight
         self.offset = (position[1]-tLight.points[0][1])
 
+    # This method is called when TL modifies his position and its lights need to be updated
     def updatePosition(self):
         rad = const.radians(self.tLight.degrees)
         self.position = [round(-self.offset*const.sin(rad) + const.TL_DISTANCES*2/3*const.cos(rad) + self.tLight.points[0][0]),
                          round(self.offset*const.cos(rad) + const.TL_DISTANCES*2/3*const.sin(rad) + self.tLight.points[0][1])]
 
-    # The only way to move this object is to move the tLight
+    # The only way to move this object is to move the tLight ↑
     def move(self):
         return
-    
+
+    # Changes its color to a darker one
     def turnOff(self):
         state_on = False
         self.color = const.TL_COLORS[self.color_type][False]
 
+    # Changes its color to a lighter one
     def turnOn(self):
         state_on = True
         self.color = const.TL_COLORS[self.color_type][True]
 
-
+# Dark gray rect with three lights with different colors inside
 class TrafficLight(RoadObject):
-    def __init__(self, game, posred, direction=const.DOWN, state=const.TL_RED, on=False):
+    def __init__(self, game, posred, direction = const.DOWN, state = const.TL_RED, on = False):
         p0 = [round(posred[0]-const.TL_DISTANCES*2/3),
               round(posred[1]-const.TL_DISTANCES)]
         p1 = [round(posred[0]+const.TL_DISTANCES*2/3),
@@ -170,18 +183,21 @@ class TrafficLight(RoadObject):
         elif direction == const.DOWN:
             self.rotate(180)
 
+    # Move the rect and its lights
     def move(self, x, y):
         super().move(x,y)
         self.red.updatePosition()
         self.yellow.updatePosition()
         self.green.updatePosition()
 
+    # Rotate the rect and its lights
     def rotate(self, angle):
         super().rotate(angle, self.red.position)
         self.red.updatePosition()
         self.yellow.updatePosition()
         self.green.updatePosition()
 
+    # Changing the state of the TL and then updates its lights
     def changeState(self):
         if self.on:
             if self.state == const.TL_RED:
@@ -197,6 +213,7 @@ class TrafficLight(RoadObject):
                 self.state = const.TL_YELLOW
         self.updateLights()
 
+    # Updates the color of the lights
     def updateLights(self):
         if self.on:
             if self.state == const.TL_RED:
@@ -221,15 +238,17 @@ class TrafficLight(RoadObject):
                 self.yellow.turnOff()
                 self.green.turnOff()
 
-
+    # Change mode to on
     def turnOn(self):
         self.on = True
         self.updateLights()
 
+    # Change mode to off
     def turnOff(self):
         self.on = False
         self.updateLights()
 
+    # It has 12 passes get more info on documentation
     def update(self):
         self.count += 1
         if self.count >= 12:
@@ -244,6 +263,7 @@ class TrafficLight(RoadObject):
         else:
             self.changeState()
 
+    # Draws itself and its lights
     def draw(self):
         super().draw()
         self.red.draw()
@@ -251,6 +271,7 @@ class TrafficLight(RoadObject):
         self.green.draw()
 
 # THIS IS NOT A GRAPHICAL OBJECT
+# It is the union of one or more lanes
 class Road():
     # now we can instantiate only double direction road
     def __init__(self, game, pstart, pstop, dim=const.ROAD_LINE_THICKNESS, lineW=const.ROAD_LINE_WIDTH, lineS=const.ROAD_LINE_SIZE):
@@ -910,7 +931,7 @@ class Vehicle(GameRect):
                     calc_y += round(const.sin(radians) * velocity * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
             myp[0] += calc_x
             myp[1] += calc_y
-        # predict a non-linear movement until it moves far away the desidered point
+        # predict a non-linear movement until it moves far away the desired point
         else:
             if velocity < 0.2 and not self.prev_acceleration:
                 if position.getCollision(objective.position, self.points):
@@ -965,7 +986,7 @@ class Vehicle(GameRect):
         # print(t,self.calcPoints(myp,degrees),self.calcPoints(myp,degrees))
         return position.Waypoint(myp[0], myp[1], velocity)
 
-    def predictCollide(self,vehicle,t=1,tollerance=6):
+    def predictCollide(self,vehicle,t=1,tolerance=6):
         velocity1 = self.velocity
         degrees1 = self.degrees
         velocity2 = vehicle.velocity
@@ -1048,7 +1069,7 @@ class Vehicle(GameRect):
         # selfSide10 = Position(vehicle.points[0].x + oldp2.x - vehicle.position.x, vehicle.points[0].y + oldp2.y - vehicle.position.y)
         # selfSide11 = Position(vehicle.points[1].x + oldp2.x - vehicle.position.x, vehicle.points[1].y + oldp2.y - vehicle.position.y)
         # selfSide12 = Position(vehicle.points[2].x + oldp2.x - vehicle.position.x, vehicle.points[2].y + oldp2.y - vehicle.position.y)
-        # if (selfSide00.betweenProjection(selfSide10,selfSide11,tollerance) and selfSide00.betweenProjection(selfSide11,selfSide12,tollerance)) or (selfSide01.betweenProjection(selfSide10,selfSide11,tollerance) and selfSide01.betweenProjection(selfSide11,selfSide12,tollerance)) or (selfSide02.betweenProjection(selfSide10,selfSide11,tollerance) and selfSide02.betweenProjection(selfSide11,selfSide12,tollerance)) or (selfSide03.betweenProjection(selfSide10,selfSide11,tollerance) and selfSide03.betweenProjection(selfSide11,selfSide12,tollerance)):
+        # if (selfSide00.betweenProjection(selfSide10,selfSide11,tolerance) and selfSide00.betweenProjection(selfSide11,selfSide12,tolerance)) or (selfSide01.betweenProjection(selfSide10,selfSide11,tolerance) and selfSide01.betweenProjection(selfSide11,selfSide12,tolerance)) or (selfSide02.betweenProjection(selfSide10,selfSide11,tolerance) and selfSide02.betweenProjection(selfSide11,selfSide12,tolerance)) or (selfSide03.betweenProjection(selfSide10,selfSide11,tolerance) and selfSide03.betweenProjection(selfSide11,selfSide12,tolerance)):
         #     return True
         # return False
 
@@ -1103,17 +1124,17 @@ class Vehicle(GameRect):
                 else:
                     objective1 = position.Waypoint(currentEndLane[0] - const.PROPORTION, currentEndLane[1],30)
                 # will I pass tlight in n cycles?
-                canPassTL = self.predict(20, objective1).desidered
+                canPassTL = self.predict(20, objective1).desired
                 if not canPassTL:
                     objective = objective1
                     objective.velocity = 0
 
         distanceFromObjective = position.distance(self.position, objective.position)
         futureWaypoint = self.predict(objective = objective)
-        # print('--',futureWaypoint.desidered)
+        # print('--',futureWaypoint.desired)
 
         #USE PREV_ACC AND PREV_DEC
-        if (objective.velocity > futureWaypoint.velocity) and futureWaypoint.desidered:
+        if (objective.velocity > futureWaypoint.velocity) and futureWaypoint.desired:
             if self.prev_acceleration>0.05:
                 self.prev_acceleration += self.prev_acceleration/self.velocity
             else:
@@ -1121,9 +1142,9 @@ class Vehicle(GameRect):
             # print(self.velocity, 'OK! :) but slow',(objective.velocity, futureWaypoint.velocity), self.prev_acceleration)
             self.accelerate(self.prev_acceleration)
 
-        elif not futureWaypoint.desidered and (objective.velocity > futureWaypoint.velocity or not futureWaypoint.velocity):
+        elif not futureWaypoint.desired and (objective.velocity > futureWaypoint.velocity or not futureWaypoint.velocity):
             # print(self.velocity,'objective too far')
-            # print(futureWaypoint.velocity,futureWaypoint.position,futureWaypoint.desidered,objective.position)
+            # print(futureWaypoint.velocity,futureWaypoint.position,futureWaypoint.desired,objective.position)
             if self.prev_deceleration>0.05 and distanceFromObjective<150:
                 self.prev_deceleration -= self.prev_deceleration/3
                 # print(self.velocity,'brake',self.prev_deceleration)
@@ -1139,7 +1160,7 @@ class Vehicle(GameRect):
                 # print(self.velocity,'accelerate',self.prev_acceleration)
                 self.accelerate(self.prev_acceleration)
 
-        elif distanceFromObjective < 3*self.velocity and (objective.velocity < futureWaypoint.velocity or not futureWaypoint.desidered):
+        elif distanceFromObjective < 3*self.velocity and (objective.velocity < futureWaypoint.velocity or not futureWaypoint.desired):
             if self.prev_acceleration>0.05 and distanceFromObjective>150:
                 self.prev_acceleration -= self.prev_acceleration/3
                 # print(self.velocity,'slow',self.prev_acceleration)
@@ -1157,7 +1178,7 @@ class Vehicle(GameRect):
                 self.accelerate(self.prev_acceleration)
             else:
                 self.brake(self.prev_deceleration)
-            # print(self.prev_acceleration,self.prev_deceleration,futureWaypoint.velocity,futureWaypoint.position,futureWaypoint.desidered,objective.position)
+            # print(self.prev_acceleration,self.prev_deceleration,futureWaypoint.velocity,futureWaypoint.position,futureWaypoint.desired,objective.position)
 
         
         # check for vehicles with more precedence
