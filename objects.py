@@ -273,7 +273,7 @@ class TrafficLight(RoadObject):
 # THIS IS NOT A GRAPHICAL OBJECT
 # It is the union of one or more lanes
 class Road():
-    # now we can instantiate only double direction road
+    # At the moment, only 2-lane roads with the same direction can be instantiated
     def __init__(self, game, pstart, pstop, dim=const.ROAD_LINE_THICKNESS, lineW=const.ROAD_LINE_WIDTH, lineS=const.ROAD_LINE_SIZE):
         self.pstart = pstart
         self.pstop = pstop
@@ -310,11 +310,12 @@ class Road():
         self.entry = Lane(game, self.pEntryStart, self.pEntryStop, self.dim, self.lineS, self.lineW, tags=['entry'])
         self.exit = Lane(game, self.pExitStart, self.pExitStop, self.dim, self.lineS, self.lineW, tags=['exit'])
 
+    # Draws every lane
     def draw(self):
         self.entry.draw()
         self.exit.draw()
 
-
+# It's a graphic object and also has some important points
 class Lane(RoadObject):
     def __init__(self, game, pstart, pstop, dim, lineS, lineW, tLight=None, tags=[]):
         # I need to specify the game, though __init__ could do that job
@@ -335,7 +336,8 @@ class Lane(RoadObject):
         self.setPosition(pstart, pstop)
 
         super().__init__(game, const.COLOR_ROAD, self.points, self.tags)
-            
+
+    # When it's moved it's needed to reset its points
     def defineLanePoints(self):
         if self.isA('left'):
             self.startLanePoints = (
@@ -461,6 +463,7 @@ class Lane(RoadObject):
                                                                       (self.points[1][0], self.points[2][1]),
                                                                       (self.points[0][0], self.points[2][1])))
 
+    # Changes its sides and sizes based on points passed
     def setPosition(self, pstart, pstop):
         self.pstart = pstart
         self.pstop = pstop
@@ -522,8 +525,7 @@ class Lane(RoadObject):
             self.points = (self.sides[0].topleft, self.sides[1].topright, self.sides[1].bottomright, self.sides[0].bottomleft)
         self.defineLanePoints()
 
-        
-
+    # Creates a tLight and associate it with the current object
     def createTrafficLight(self, status=const.TL_RED, on=False):
         if hasattr(self,'tLight'):
             self.removeTrafficLight()
@@ -557,7 +559,7 @@ class Lane(RoadObject):
         self.tags.append('exit')
         del self.tLight
 
-
+# Graphical object (it's a square) but it contains all the intersection roads and manages them
 class Crossroad(RoadObject):
     def __init__(self, game, roads):
         self.entries = [i.entry for i in roads]
@@ -607,17 +609,19 @@ class Crossroad(RoadObject):
     def draw(self):
         super().draw()
 
+    # Easily updates all tLights
     def updateTLights(self):
         for i in self.entries:
             i.tLight.update()
 
+    # Easily turn on/off tLights
     def turnOnTLights(self, turnOn=True):
         if turnOn:
             [i.tLight.turnOn() for i in self.entries]
         else:
             [i.tLight.turnOff() for i in self.entries]
 
-   # we get where the point is (in which specific lane)
+   # Gets where the point is (in which specific lane)
     def getLaneFromPos(self, obj, inflate=True):
         if hasattr(obj, 'graphic'):
             for i in self.entries:
@@ -655,11 +659,13 @@ class Crossroad(RoadObject):
                         return i, 1
         # this point is not in a lane
         return None, None
-    
+
+    # Gets one random lane
     def randomEntry(self):
         return self.entries[const.randint(0,len(self.entries)-1)]
 
-    def randomExit(self, entry = None):
+    # Gets a random lane that does not have the same direction as the past lane
+    def randomExit(self, entry=None):
         countElements = len(self.exits)
         if entry:
             roadId = self.entries.index(entry)
@@ -669,7 +675,8 @@ class Crossroad(RoadObject):
             return self.exits[randomElement]
         return self.exits[const.randint(0,countElements-1)]
 
-    def getOppositeLanes(self, vehicle, direction = const.FORWARD):
+    # Given a vehicle, its spawn lane is obtained, then the returned lane is relative if we want to turn or go straight ahead
+    def getOppositeLanes(self, vehicle, direction=const.FORWARD):
         road = vehicle.spawnLane
         if direction == const.RIGHT:
             if road.isA('up'):
@@ -698,8 +705,9 @@ class Crossroad(RoadObject):
                 return [lane for lane in self.exits if lane.isA('left')]
             else:
                 return [lane for lane in self.exits if lane.isA('right')]
-    
-    def hasPrecedence(self,vehicle1,vehicle2):
+
+    # Does a vehicle have precedence (right first) over another?
+    def hasPrecedence(self, vehicle1, vehicle2):
         if vehicle1.spawnDirection == vehicle2.spawnDirection:
             return vehicle1.id < vehicle2.id
         # it's possible to get collisions from vehicles that turn
@@ -722,10 +730,9 @@ class Crossroad(RoadObject):
         if vehicle1.objectiveDirection == const.FORWARD:
             return True
         
-
-
+# Most important and complex class of simulation, common properties for vehicle and decision-making are there
 class Vehicle(GameRect):
-    def __init__(self, game, crossroad, lane, side, power = const.CAR_ACCELERATION):
+    def __init__(self, game, crossroad, lane, side, power=const.CAR_ACCELERATION):
         self.game = game
         self.position = lane.startLanePoints[side]
 
@@ -741,11 +748,12 @@ class Vehicle(GameRect):
         self.spawnLane = lane
         self.spawnSide = side
         self.arrived = False
-    
+
     def initObject(self, color, points):
         super().__init__(self.game, color, points, self.degrees)
         super().draw()
 
+    # Modifies all its parameters and position, according to its acceleration, deceleration and steering
     def update(self):
         self.velocity += self.acceleration*self.power/self.weight
         if self.velocity > 0:
@@ -779,6 +787,7 @@ class Vehicle(GameRect):
                 calc_y = round(const.sin(radians)*self.velocity*const.VEHICLE_RENDER, const.FLOAT_PRECISION)
                 self.move(calc_x, calc_y)
 
+    # Modifies his steering wheel rotation, respecting a defined maximum
     def steer(self, power = 0):
         if power < -33:
             power = -33
@@ -792,6 +801,7 @@ class Vehicle(GameRect):
             difference = -3
         self.steerDeg += difference
 
+    # Modifies his acceleration
     def accelerate(self, power = 0.5):
         if power < 0:
             power = 0
@@ -800,6 +810,7 @@ class Vehicle(GameRect):
         self.acceleration = power
         self.deceleration = 0
 
+    # Modifies his deceleration
     def brake(self, power = 0.5):
         if power < 0:
             power = 0
@@ -807,8 +818,8 @@ class Vehicle(GameRect):
             power = 1
         self.deceleration = power
         self.acceleration = 0
-    # we tell to the vehicle where to go and we set a step by step guide to get there
 
+    # Sets the vehicle waypoints to get to destination
     def setObjective(self, lane):
         self.waypoints = []
         currentLane, rightS = self.crossroad.getLaneFromPos(self)
@@ -892,10 +903,9 @@ class Vehicle(GameRect):
         # for i in self.waypoints:
         #     self.game.graphic_lib.drawCircle(
         #             i.x,i.y,5, fill=const.RED_OFF)
-    # predict where it will be in t time
 
+    # Predicts where it will be in t time or if it can reach an objective point
     def predict(self, t=0, objective=None):
-
         if not t and not objective:
             t=1
 
@@ -986,7 +996,8 @@ class Vehicle(GameRect):
         # print(t,self.calcPoints(myp,degrees),self.calcPoints(myp,degrees))
         return position.Waypoint(myp[0], myp[1], velocity)
 
-    def predictCollide(self,vehicle,t=1,tolerance=6):
+    # Will there be a collision between me and another vehicle?
+    def predictCollide(self, vehicle, t=1, tolerance=6):
         velocity1 = self.velocity
         degrees1 = self.degrees
         velocity2 = vehicle.velocity
@@ -1073,8 +1084,8 @@ class Vehicle(GameRect):
         #     return True
         # return False
 
+    # This method defines all decision-making of the driver
     def drive(self, allvehicles):
-        # here we got all decision-making of the driver
         if not hasattr(self, 'waypoints') or len(self.waypoints) < 1:
             return
 
@@ -1195,7 +1206,7 @@ class Vehicle(GameRect):
                         print('WARNING',self.id)
                         break
 
-    # returns determinant and if possible center of a rotation
+    # It returns determinant and if possible center of a rotation
     def calcDeterminant(self, degrees=None):
         if degrees == None:
             degrees = self.degrees
@@ -1229,7 +1240,7 @@ class Vehicle(GameRect):
             return determinant,((rearB*frontC - frontB*rearC)/determinant, (frontA*rearC - rearA*frontC)/determinant)
         return None,None
 
-    
+# Main vehicle
 class Car(Vehicle):
     def __init__(self, game, crossroad, lane, side=const.randint(0,1), color=None):
         if not color:
@@ -1253,22 +1264,25 @@ class Car(Vehicle):
         super().initObject(color, points)
         self.weight = const.CAR_WEIGHT
 
+    # Having the inclination and the center, it's possible to calculate each of its wheels
+    # Its wheels are used only for the calculation of the rotary movement
     def calcWheelsPosition(self):
         mysin = const.sin(const.radians(self.degrees))
         mycos = const.cos(const.radians(self.degrees))
         distX = const.HALF_CAR_WIDTH-const.CAR_WHEELS_POSITION
         distY = const.HALF_CAR_HEIGHT-const.PROPORTION
         return (
-                [self.position[0] + mysin*distY + mycos*distX,
-                 self.position[1] + mysin*distX - mycos*distY],
-                [self.position[0] - mysin*distY + mycos*distX,
-                 self.position[1] + mysin*distX + mycos*distY],
-                [self.position[0] - mysin*distY - mycos*distX,
-                 self.position[1] - mysin*distX + mycos*distY],
-                [self.position[0] + mysin*distY - mycos*distX,
-                 self.position[1] - mysin*distX - mycos*distY]
+            [self.position[0] + mysin*distY + mycos*distX,
+                self.position[1] + mysin*distX - mycos*distY],
+            [self.position[0] - mysin*distY + mycos*distX,
+                self.position[1] + mysin*distX + mycos*distY],
+            [self.position[0] - mysin*distY - mycos*distX,
+                self.position[1] - mysin*distX + mycos*distY],
+            [self.position[0] + mysin*distY - mycos*distX,
+                self.position[1] - mysin*distX - mycos*distY]
         )
 
+    # Having the inclination and the center, it's possible to calculate each of its points
     def calcPoints(self, position=None, degrees=None):
         if not position:
             position = self.position
@@ -1277,16 +1291,17 @@ class Car(Vehicle):
         mysin = const.sin(const.radians(degrees))
         mycos = const.cos(const.radians(degrees))
         return (
-                [round(position[0] + mysin*const.HALF_CAR_HEIGHT + mycos*const.HALF_CAR_WIDTH, const.FLOAT_PRECISION),
-                 round(position[1] + mysin*const.HALF_CAR_WIDTH - mycos*const.HALF_CAR_HEIGHT, const.FLOAT_PRECISION)],
-                [round(position[0] - mysin*const.HALF_CAR_HEIGHT + mycos*const.HALF_CAR_WIDTH, const.FLOAT_PRECISION),
-                 round(position[1] + mysin*const.HALF_CAR_WIDTH + mycos*const.HALF_CAR_HEIGHT, const.FLOAT_PRECISION)],
-                [round(position[0] - mysin*const.HALF_CAR_HEIGHT - mycos*const.HALF_CAR_WIDTH, const.FLOAT_PRECISION),
-                 round(position[1] - mysin*const.HALF_CAR_WIDTH + mycos*const.HALF_CAR_HEIGHT, const.FLOAT_PRECISION)],
-                [round(position[0] + mysin*const.HALF_CAR_HEIGHT - mycos*const.HALF_CAR_WIDTH, const.FLOAT_PRECISION),
-                 round(position[1] - mysin*const.HALF_CAR_WIDTH - mycos*const.HALF_CAR_HEIGHT, const.FLOAT_PRECISION)]
-            )
-                                                      
+            [round(position[0] + mysin*const.HALF_CAR_HEIGHT + mycos*const.HALF_CAR_WIDTH, const.FLOAT_PRECISION),
+                round(position[1] + mysin*const.HALF_CAR_WIDTH - mycos*const.HALF_CAR_HEIGHT, const.FLOAT_PRECISION)],
+            [round(position[0] - mysin*const.HALF_CAR_HEIGHT + mycos*const.HALF_CAR_WIDTH, const.FLOAT_PRECISION),
+                round(position[1] + mysin*const.HALF_CAR_WIDTH + mycos*const.HALF_CAR_HEIGHT, const.FLOAT_PRECISION)],
+            [round(position[0] - mysin*const.HALF_CAR_HEIGHT - mycos*const.HALF_CAR_WIDTH, const.FLOAT_PRECISION),
+                round(position[1] - mysin*const.HALF_CAR_WIDTH + mycos*const.HALF_CAR_HEIGHT, const.FLOAT_PRECISION)],
+            [round(position[0] + mysin*const.HALF_CAR_HEIGHT - mycos*const.HALF_CAR_WIDTH, const.FLOAT_PRECISION),
+                round(position[1] - mysin*const.HALF_CAR_WIDTH - mycos*const.HALF_CAR_HEIGHT, const.FLOAT_PRECISION)]
+        )
+
+# Other specified vehicle
 class Bus(Vehicle):
     def __init__(self, game, crossroad, lane, side=const.randint(0,1), color=const.RANDOM_COLOR()):
         super().__init__(game, crossroad, lane, side)#, const.BUS_ACCELERATION)
@@ -1307,23 +1322,26 @@ class Bus(Vehicle):
 
         super().initObject(color, points)
         self.weight = const.BUS_WEIGHT
-        
+
+    # Having the inclination and the center, it's possible to calculate each of its wheels
+    # Its wheels are used only for the calculation of the rotary movement
     def calcWheelsPosition(self):
         mysin = const.sin(const.radians(self.degrees))
         mycos = const.cos(const.radians(self.degrees))
         distX = const.HALF_BUS_WIDTH-const.CAR_WHEELS_POSITION
         distY = const.HALF_BUS_HEIGHT-const.PROPORTION
         return (
-                [self.position[0] + mysin*distY + mycos*distX,
-                 self.position[1] + mysin*distX - mycos*distY],
-                [self.position[0] - mysin*distY + mycos*distX,
-                 self.position[1] + mysin*distX + mycos*distY],
-                [self.position[0] - mysin*distY - mycos*distX,
-                 self.position[1] - mysin*distX + mycos*distY],
-                [self.position[0] + mysin*distY - mycos*distX,
-                 self.position[1] - mysin*distX - mycos*distY]
+            [self.position[0] + mysin*distY + mycos*distX,
+                self.position[1] + mysin*distX - mycos*distY],
+            [self.position[0] - mysin*distY + mycos*distX,
+                self.position[1] + mysin*distX + mycos*distY],
+            [self.position[0] - mysin*distY - mycos*distX,
+                self.position[1] - mysin*distX + mycos*distY],
+            [self.position[0] + mysin*distY - mycos*distX,
+                self.position[1] - mysin*distX - mycos*distY]
         )
 
+    # Having the inclination and the center, it's possible to calculate each of its points
     def calcPoints(self, position=None, degrees=None):
         if not position:
             position = self.position
@@ -1332,16 +1350,17 @@ class Bus(Vehicle):
         mysin = const.sin(const.radians(degrees))
         mycos = const.cos(const.radians(degrees))
         return (
-                [round(position[0] + mysin*const.HALF_BUS_HEIGHT + mycos*const.HALF_BUS_WIDTH, const.FLOAT_PRECISION),
-                 round(position[1] + mysin*const.HALF_BUS_WIDTH - mycos*const.HALF_BUS_HEIGHT, const.FLOAT_PRECISION)],
-                [round(position[0] - mysin*const.HALF_BUS_HEIGHT + mycos*const.HALF_BUS_WIDTH, const.FLOAT_PRECISION),
-                 round(position[1] + mysin*const.HALF_BUS_WIDTH + mycos*const.HALF_BUS_HEIGHT, const.FLOAT_PRECISION)],
-                [round(position[0] - mysin*const.HALF_BUS_HEIGHT - mycos*const.HALF_BUS_WIDTH, const.FLOAT_PRECISION),
-                 round(position[1] - mysin*const.HALF_BUS_WIDTH + mycos*const.HALF_BUS_HEIGHT, const.FLOAT_PRECISION)],
-                [round(position[0] + mysin*const.HALF_BUS_HEIGHT - mycos*const.HALF_BUS_WIDTH, const.FLOAT_PRECISION),
-                 round(position[1] - mysin*const.HALF_BUS_WIDTH - mycos*const.HALF_BUS_HEIGHT, const.FLOAT_PRECISION)]
-            )
-    # BUS can steer more than 33 deg
+            [round(position[0] + mysin*const.HALF_BUS_HEIGHT + mycos*const.HALF_BUS_WIDTH, const.FLOAT_PRECISION),
+                round(position[1] + mysin*const.HALF_BUS_WIDTH - mycos*const.HALF_BUS_HEIGHT, const.FLOAT_PRECISION)],
+            [round(position[0] - mysin*const.HALF_BUS_HEIGHT + mycos*const.HALF_BUS_WIDTH, const.FLOAT_PRECISION),
+                round(position[1] + mysin*const.HALF_BUS_WIDTH + mycos*const.HALF_BUS_HEIGHT, const.FLOAT_PRECISION)],
+            [round(position[0] - mysin*const.HALF_BUS_HEIGHT - mycos*const.HALF_BUS_WIDTH, const.FLOAT_PRECISION),
+                round(position[1] - mysin*const.HALF_BUS_WIDTH + mycos*const.HALF_BUS_HEIGHT, const.FLOAT_PRECISION)],
+            [round(position[0] + mysin*const.HALF_BUS_HEIGHT - mycos*const.HALF_BUS_WIDTH, const.FLOAT_PRECISION),
+                round(position[1] - mysin*const.HALF_BUS_WIDTH - mycos*const.HALF_BUS_HEIGHT, const.FLOAT_PRECISION)]
+        )
+
+    # This vehicle can steer more than 33 deg
     def steer(self, power = 0):
         if power < -60:
             power = -60
