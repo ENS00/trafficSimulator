@@ -2,8 +2,7 @@ import const
 
 # Main object that interacts with graphic library
 class Graphic():
-
-    def __init__(self, title, width, height, background_color = const.BLACK, icon_path = None):
+    def __init__(self, title, width, height, background_color=const.BLACK, icon_path=None):
         const.pygame.init()                                             # Initialize library for current OS
 
         self.graphic = const.pygame
@@ -20,14 +19,13 @@ class Graphic():
         self.height = height
         self.background_color = background_color
         self.fonts = {}
-        self.updateAreas = []
         self.screen.fill(background_color)                              # Draws all the background
         self.graphic.display.flip()                                     # Updates every pixel of the window
 
         self.updateFrequency = round(1000/const.FPS)
 
     # Utility to draw a text on the window
-    def drawText(self, pos, text, size, font = None, color = const.BLACK):
+    def drawText(self, pos, text, size, font=None, color=const.BLACK):
         if font != None:
             font = const.FONT_PATH+font+const.FONT_EXT
             if font in self.fonts:
@@ -41,4 +39,4 @@ class Graphic():
         return self.screen.blit(text, pos)
 
     def update(self):
-        self.graphic.display.update(self.updateAreas)                   # The library only updates some pixels on the entire window
+        self.graphic.display.flip()                                     # update the screen

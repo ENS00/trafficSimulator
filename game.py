@@ -39,7 +39,7 @@ class TimePanel(objects.GameRect):
     def draw(self):
         if not self.graphic:
             self.graphic = self.graphic_lib.graphic.draw.polygon(self.graphic_lib.screen, self.color, self.points)
-            self.graphic_lib.updateAreas.append(self.graphic)
+            # self.graphic_lib.updateAreas.append(self.graphic)
             self.position = self.graphic.topleft
         self.graphic = self.graphic_lib.drawText(self.position, self.value, self.size)
 
@@ -57,7 +57,7 @@ class Game():
         self.statusLights = None                        # it memorize the last update of traffic lights
         self.vehicles = []                              # all active vehicles
         self.removeObjects = []                         # all vehicles to remove
-        self.randomSpawn = const.randint(150,800)       # every x time spawn a vehicle
+        self.randomSpawn = const.randint(100,300)       # every x time spawn a vehicle
         self.lastSpawn = 0                              # when the last spawn happened
 
     # Inizializes roads and draws crossroad (the crossroad object call for every object it owns the draw method)
@@ -101,6 +101,7 @@ class Game():
         # Random spawn
         if currentTimeFromStart > self.lastSpawn+self.randomSpawn:
             self.lastSpawn = currentTimeFromStart+self.randomSpawn
+            self.randomSpawn = const.randint(100,300)
             newVehicle = self.spawnVehicle()
 
         # The vehicles are moving
