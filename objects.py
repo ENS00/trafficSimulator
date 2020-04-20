@@ -559,23 +559,23 @@ class Crossroad(RoadObject):
         maxpstop = [0, 0]
         for i in self.exits:
             if i.isA('left'):
-                i.setPosition((i.pstart[0]-self.dim,i.pstart[1]),i.pstop)
+                i.setPosition((i.pstart[0] - self.dim, i.pstart[1]), i.pstop)
             elif i.isA('right'):
-                i.setPosition((i.pstart[0]+self.dim,i.pstart[1]),i.pstop)
+                i.setPosition((i.pstart[0] + self.dim, i.pstart[1]), i.pstop)
             elif i.isA('up'):
-                i.setPosition((i.pstart[0],i.pstart[1]-self.dim),i.pstop)
+                i.setPosition((i.pstart[0], i.pstart[1] - self.dim), i.pstop)
             else:
-                i.setPosition((i.pstart[0],i.pstart[1]+self.dim),i.pstop)
+                i.setPosition((i.pstart[0], i.pstart[1] + self.dim), i.pstop)
             i.crossroad = self
         for i in self.entries:
             if i.isA('left'):
-                i.setPosition(i.pstart,(i.pstop[0]+self.dim,i.pstop[1]))
+                i.setPosition(i.pstart, (i.pstop[0] + self.dim, i.pstop[1]))
             elif i.isA('right'):
-                i.setPosition(i.pstart,(i.pstop[0]-self.dim,i.pstop[1]))
+                i.setPosition(i.pstart, (i.pstop[0] - self.dim, i.pstop[1]))
             elif i.isA('up'):
-                i.setPosition(i.pstart,(i.pstop[0],i.pstop[1]+self.dim))
+                i.setPosition(i.pstart, (i.pstop[0], i.pstop[1] + self.dim))
             else:
-                i.setPosition(i.pstart,(i.pstop[0],i.pstop[1]-self.dim))
+                i.setPosition(i.pstart, (i.pstop[0], i.pstop[1] - self.dim))
             
             i.crossroad = self
             if i.pstop[0] < minpstop[0]:
@@ -649,9 +649,29 @@ class Crossroad(RoadObject):
         # this point is not in a lane
         return None, None
 
-    # Gets one random lane
+    # Gets one random lane (it checks if there isn't any vehicle in there)
     def randomEntry(self):
-        return self.entries[const.randint(0,len(self.entries)-1)]
+        myentries = list(self.entries)
+        while len(myentries)>0:
+            ret = True
+            randomE = myentries[const.randint(0,len(myentries)-1)]
+            laneDim = randomE.dim
+            xstart = randomE.pstart[0] - laneDim
+            ystart = randomE.pstart[1] - const.THIRTY_PROPORTION
+            if xstart<0:
+                xstart = 0
+            if ystart<0:
+                ystart = 0
+            spawnArea = self.game.graphic_lib.graphic.Rect([xstart, ystart],
+                                                           [randomE.pstart[0] + laneDim, randomE.pstart[1] + const.THIRTY_PROPORTION])
+            for vehicle in self.game.vehicles:
+                if spawnArea.colliderect(vehicle.graphic):
+                    myentries.remove(randomE)
+                    ret = False
+                    break
+            if ret:
+                return randomE
+        return
 
     # Gets a random lane that does not have the same direction as the past lane
     def randomExit(self, entry=None):
@@ -746,7 +766,7 @@ class Vehicle(GameRect):
     def update(self):
         self.velocity += self.acceleration*self.power/self.weight
         if self.velocity > 0:
-            self.velocity -= self.deceleration*8*self.power/self.weight
+            self.velocity -= self.deceleration*4*self.power/self.weight
         # prev_acceleration prev_deceleration used in predict function
         self.prev_acceleration = self.acceleration
         self.prev_deceleration = self.deceleration
@@ -764,16 +784,16 @@ class Vehicle(GameRect):
                 if center:
                     # i do not need rear calc because it's fine use one of the rear wheels
                     # rotate the vehicle
-                    self.rotate(const.copysign(self.velocity*const.VEHICLE_RENDER*75/position.distance(center,self.position),self.steerDeg), center)
+                    self.rotate(const.copysign(self.velocity * const.VEHICLE_RENDER*75 / position.distance(center,self.position), self.steerDeg), center)
                 else:
                     radians = const.radians(self.degrees)
-                    calc_x = round(const.cos(radians)*self.velocity*const.VEHICLE_RENDER, const.FLOAT_PRECISION)
-                    calc_y = round(const.sin(radians)*self.velocity*const.VEHICLE_RENDER, const.FLOAT_PRECISION)
+                    calc_x = round(const.cos(radians) * self.velocity * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
+                    calc_y = round(const.sin(radians) * self.velocity * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
                     self.move(calc_x, calc_y)
             else:
                 radians = const.radians(self.degrees)
-                calc_x = round(const.cos(radians)*self.velocity*const.VEHICLE_RENDER, const.FLOAT_PRECISION)
-                calc_y = round(const.sin(radians)*self.velocity*const.VEHICLE_RENDER, const.FLOAT_PRECISION)
+                calc_x = round(const.cos(radians) * self.velocity * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
+                calc_y = round(const.sin(radians) * self.velocity * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
                 self.move(calc_x, calc_y)
 
     # Modifies his steering wheel rotation, respecting a defined maximum
@@ -784,10 +804,10 @@ class Vehicle(GameRect):
             power = 33
         # speed of steering
         difference = power - self.steerDeg
-        if difference > 3:
-            difference = 3
-        if difference < -3:
-            difference = -3
+        if difference > 2:
+            difference = 2
+        if difference < -2:
+            difference = -2
         self.steerDeg += difference
 
     # Modifies his acceleration
@@ -832,55 +852,66 @@ class Vehicle(GameRect):
                 # we are on the wrong side
                 rightS = 1
                 if currentLane.isA('right'):
-                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0]/2+const.PROPORTION, currentLane.endLanePoints[rightS][1], 25))
+                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0]/2 + const.PROPORTION, currentLane.endLanePoints[rightS][1], 25))
                 elif currentLane.isA('left'):
-                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0]*4/3-const.PROPORTION, currentLane.endLanePoints[rightS][1], 25))
+                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0]*4/3 - const.PROPORTION, currentLane.endLanePoints[rightS][1], 25))
                 elif currentLane.isA('up'):
-                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1]*4/3-const.PROPORTION, 25))
+                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1]*4/3 - const.PROPORTION, 25))
                 else:
-                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1]/2+const.PROPORTION, 25))
+                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1]/2 + const.PROPORTION, 25))
             # end of current lane
             if currentLane.isA('right'):
-                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0]+const.TWELVE_PROPORTION, currentLane.endLanePoints[rightS][1], 25, checkTLight=True))
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0] + const.DOUBLE_PROPORTION, currentLane.endLanePoints[rightS][1], 35, checkTLight=True))
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0] + const.EIGHTEEN_PROPORTION, currentLane.endLanePoints[rightS][1], 10, checkLeft=True))
             elif currentLane.isA('left'):
-                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0]-const.TWELVE_PROPORTION, currentLane.endLanePoints[rightS][1], 25, checkTLight=True))
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0] - const.DOUBLE_PROPORTION, currentLane.endLanePoints[rightS][1], 35, checkTLight=True))
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0] - const.EIGHTEEN_PROPORTION, currentLane.endLanePoints[rightS][1], 10, checkLeft=True))
             elif currentLane.isA('up'):
-                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1]-const.TWELVE_PROPORTION, 25, checkTLight=True))
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1] - const.DOUBLE_PROPORTION, 35, checkTLight=True))
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1] - const.EIGHTEEN_PROPORTION, 10, checkLeft=True))
             else:
-                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1]+const.TWELVE_PROPORTION, 25, checkTLight=True))
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1] + const.DOUBLE_PROPORTION, 35, checkTLight=True))
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1] + const.EIGHTEEN_PROPORTION, 10, checkLeft=True))
             # start of new lane
             if lane.isA('right'):
-                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0]-const.DOUBLE_PROPORTION, lane.startLanePoints[rightS][1], 18))
+                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0] - const.DOUBLE_PROPORTION, lane.startLanePoints[rightS][1], 18))
             elif lane.isA('left'):
-                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0]+const.DOUBLE_PROPORTION, lane.startLanePoints[rightS][1], 18))
+                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0] + const.DOUBLE_PROPORTION, lane.startLanePoints[rightS][1], 18))
             elif lane.isA('up'):
-                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1]+const.DOUBLE_PROPORTION, 18))
+                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1] + const.DOUBLE_PROPORTION, 18))
             else:
-                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1]-const.DOUBLE_PROPORTION, 18))
+                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1] - const.DOUBLE_PROPORTION, 18))
         elif (currentLane.isA('left') and lane.isA('up')) or (currentLane.isA('up') and lane.isA('right')) or (currentLane.isA('right') and lane.isA('down')) or (currentLane.isA('down') and lane.isA('left')):
             self.objectiveDirection = const.RIGHT
             if(rightS == 1):
                 # we are on the wrong side
                 rightS = 0
                 if currentLane.isA('right'):
-                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0]/2+const.PROPORTION, currentLane.endLanePoints[rightS][1], 25))
+                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0]/2 + const.PROPORTION, currentLane.endLanePoints[rightS][1], 25))
                 elif currentLane.isA('left'):
-                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0]*4/3-const.PROPORTION, currentLane.endLanePoints[rightS][1], 25))
+                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0]*4/3 - const.PROPORTION, currentLane.endLanePoints[rightS][1], 25))
                 elif currentLane.isA('up'):
-                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1]*4/3-const.PROPORTION, 25))
+                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1]*4/3 - const.PROPORTION, 25))
                 else:
-                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1]/2+const.PROPORTION, 25))
+                    self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1]/2 + const.PROPORTION, 25))
             # end of current lane
-            self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1], 25, checkTLight=True))
+            if currentLane.isA('right'):
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0] + self.width, currentLane.endLanePoints[rightS][1], 25, checkTLight=True))
+            elif currentLane.isA('left'):
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0] - self.width, currentLane.endLanePoints[rightS][1], 25, checkTLight=True))
+            elif currentLane.isA('up'):
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1] - self.width, 25, checkTLight=True))
+            else:
+                self.waypoints.append(position.Waypoint(currentLane.endLanePoints[rightS][0], currentLane.endLanePoints[rightS][1] + self.width, 25, checkTLight=True))
             # start of new lane
             if lane.isA('right'):
-                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0]-const.PROPORTION, lane.startLanePoints[rightS][1], 18))
+                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1], 18))
             elif lane.isA('left'):
-                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0]+const.PROPORTION, lane.startLanePoints[rightS][1], 18))
+                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1], 18))
             elif lane.isA('up'):
-                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1]+const.PROPORTION, 18))
+                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1], 18))
             else:
-                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1]-const.PROPORTION, 18))
+                self.waypoints.append(position.Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1], 18))
         else:
             # exit is on the other lane
             self.objectiveDirection = const.FORWARD
@@ -893,179 +924,10 @@ class Vehicle(GameRect):
         #     self.game.graphic_lib.drawCircle(
         #             i.x,i.y,5, fill=const.RED_OFF)
 
-    # Predicts where it will be in t time or if it can reach an objective point
-    def predict(self, t=0, objective=None):
-        if not t and not objective:
-            t=1
-
-        velocity = self.velocity
-        degrees = self.degrees
-        calc_x = 0
-        calc_y = 0
-        myp = list(self.position)
-
-        if not objective:
-            for i in range(1, t+1):
-                velocity += self.prev_acceleration*self.power/self.weight
-                if velocity > 0:
-                    velocity -= self.prev_deceleration*2*self.power/self.weight
-                if velocity > 0:
-                    velocity = round(velocity - const.VEHICLE_FRICTION*const.ceil(velocity/10)*self.weight, const.FLOAT_PRECISION)
-                if velocity > 0 and self.steerDeg:
-                    velocity = round(velocity - const.fabs(self.steerDeg)*0.0005*pow(velocity, 0.3), const.FLOAT_PRECISION)
-                if velocity < 0:
-                    velocity = 0
-                else:
-                    if self.steerDeg:
-                        determinant,center = self.calcDeterminant(degrees)
-                        if determinant:
-                            degrees += determinant
-                            if degrees > 360:
-                                degrees-=360
-                            if degrees < 0:
-                                degrees+=360
-                            # degrees += self.steerDeg*velocity / (velocity*velocity*1.25 + 1)
-                    radians = const.radians(degrees)
-                    calc_x += round(const.cos(radians) * velocity * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
-                    calc_y += round(const.sin(radians) * velocity * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
-            myp[0] += calc_x
-            myp[1] += calc_y
-        # predict a non-linear movement until it moves far away the desired point
-        else:
-            if velocity < 0.2 and not self.prev_acceleration:
-                if position.getCollision(objective.position, self.points):
-                    return position.Waypoint(myp[0], myp[1], velocity)
-                return position.Waypoint(myp[0], myp[1], velocity, False)
-            last_distance = 100000
-            count = 0
-            while velocity > 0.1 and last_distance >= position.distance(myp,objective.position):
-                count+=1
-                last_distance = position.distance(myp,objective.position)
-                # print('-------',myp,objective.position, velocity)
-                velocity += self.prev_acceleration*self.power/self.weight
-                if velocity > 0:
-                    velocity -= self.prev_deceleration*2*self.power/self.weight
-                if velocity > 0:
-                    velocity = round(velocity - const.VEHICLE_FRICTION*const.ceil(velocity/10)*self.weight, const.FLOAT_PRECISION)
-                if velocity > 0 and self.steerDeg:
-                    velocity = round(velocity - const.fabs(self.steerDeg)*0.0005*pow(velocity, 0.3), const.FLOAT_PRECISION)
-                if velocity < 0.2 and not self.prev_acceleration:
-                    velocity = 0
-                else:
-                    if self.steerDeg:
-                        determinant,center = self.calcDeterminant(degrees)
-                        if determinant:
-                            degrees += determinant
-                            if degrees > 360:
-                                degrees-=360
-                            if degrees < 0:
-                                degrees+=360
-                    radians = const.radians(degrees)
-                    calc_x = round(const.cos(radians) * velocity * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
-                    calc_y = round(const.sin(radians) * velocity * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
-                    myp[0] += calc_x
-                    myp[1] += calc_y
-            myp2 = list(myp)
-            myp[0] -= calc_x
-            myp[1] -= calc_y
-            nearestPoint = position.projection(objective.position, myp, myp2)
-            # we want that nearestPoint to be in between myp and myp2, if it is not we will use myp2
-            if nearestPoint[0]<min(myp[0],myp2[0]) or nearestPoint[0]>max(myp[0],myp2[0]) or nearestPoint[1]<min(myp[1],myp2[1]) or nearestPoint[1]>max(myp[1],myp2[1]):
-                nearestPoint = myp2
-            
-            if t:
-                if t < count:#return myp instead?
-                    return position.Waypoint(nearestPoint[0], nearestPoint[1], velocity, False)
-                return position.Waypoint(myp[0], myp[1], velocity)
-            sides = self.calcPoints(nearestPoint,degrees)
-            # print(sides,objective.position,self.steerDeg,self.degrees,degrees)
-            if position.getCollision(objective.position, sides):
-                return position.Waypoint(nearestPoint[0], nearestPoint[1], velocity)
-            return position.Waypoint(myp2[0], myp2[1], velocity, False)
-        # print(t,self.calcPoints(myp,degrees),self.calcPoints(myp,degrees))
-        return position.Waypoint(myp[0], myp[1], velocity)
-
-    # Will there be a collision between me and another vehicle?
-    def predictCollide(self, vehicle, t=1, tolerance=6):
-        velocity1 = self.velocity
-        degrees1 = self.degrees
-        velocity2 = vehicle.velocity
-        degrees2 = vehicle.degrees
-        
-        myp1 = list(self.position)
-        myp2 = list(vehicle.position)
-
-        distance = position.distance(myp1,myp2)
-
-        for i in range(1, t+1):
-            velocity1 += self.prev_acceleration*self.power/self.weight
-            velocity2 += vehicle.prev_acceleration*vehicle.power/vehicle.weight
-
-            if velocity1 > 0:
-                velocity1 -= self.prev_deceleration*2*self.power/self.weight
-            if velocity2 > 0:
-                velocity2 -= vehicle.prev_deceleration*2*vehicle.power/vehicle.weight
-
-            if velocity1 > 0:
-                velocity1 = velocity1 - const.VEHICLE_FRICTION*const.ceil(velocity1/10)*self.weight - const.fabs(self.steerDeg/10)
-            if velocity2 > 0:
-                velocity2 = velocity2 - const.VEHICLE_FRICTION*const.ceil(velocity2/10)*vehicle.weight - const.fabs(vehicle.steerDeg/10)
-
-            if velocity1 > 0 and self.steerDeg:
-                velocity1 = round(velocity1 - const.fabs(self.steerDeg)*0.0005*pow(velocity1, 0.3), const.FLOAT_PRECISION)
-            if velocity2 > 0 and vehicle.steerDeg:
-                velocity2 = round(velocity2 - const.fabs(self.steerDeg)*0.0005*pow(velocity2, 0.3), const.FLOAT_PRECISION)
-
-            if velocity1 < 0.2 and not self.prev_acceleration:
-                velocity1 = 0
-                oldp1 = myp1
-            else:
-                if self.steerDeg:
-                    determinant,center = self.calcDeterminant(degrees1)
-                    if determinant:
-                        degrees1 += determinant
-                        if degrees1 > 360:
-                            degrees1-=360
-                        if degrees1 < 0:
-                            degrees1+=360
-                radians = const.radians(degrees1)
-                oldp1 = list(myp1)
-                myp1[0] += round(const.cos(radians) * velocity1 * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
-                myp1[1] += round(const.sin(radians) * velocity1 * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
-
-            if velocity2 < 0.2 and not vehicle.prev_acceleration:
-                velocity2 = 0
-                oldp2 = myp2
-            else:
-                if self.steerDeg:
-                    determinant,center = self.calcDeterminant(degrees2)
-                    if determinant:
-                        degrees2 += determinant
-                        if degrees2 > 360:
-                            degrees2-=360
-                        if degrees2 < 0:
-                            degrees2+=360
-                radians = const.radians(degrees2)
-                oldp2 = list(myp2)
-                myp2[0] += round(const.cos(radians) * velocity2 * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
-                myp2[1] += round(const.sin(radians) * velocity2 * const.VEHICLE_RENDER, const.FLOAT_PRECISION)
-
-            newDistance = position.distance(myp1,myp2)
-            if newDistance >= distance:
-                # from now vehicles are moving away
-                p1 = self.calcPoints(oldp1)
-                p2 = vehicle.calcPoints(oldp2)
-                return position.getRectCollision(p1,p2)
-            else:
-                distance = newDistance
-        # vehicles will move even closer
-        p1 = self.calcExtendedPoints(myp1)
-        p2 = vehicle.calcPoints(myp2)
-        return position.getRectCollision(p1,p2)
-
     # This method defines all decision-making of the driver
     def drive(self, allvehicles):
         if not hasattr(self, 'waypoints') or len(self.waypoints) < 1:
+            self.accelerate(1)
             return
 
         if self.graphic.collidepoint(self.waypoints[0].position):#position.distance(self.position, self.waypoints[0].position) < 7:
@@ -1073,24 +935,35 @@ class Vehicle(GameRect):
             self.waypoints.pop(0)
             if len(self.waypoints) < 1:
                 self.arrived = True
+                self.accelerate(1)
                 return
 
         objective = self.waypoints[0].clone()
 
         # radians that descripes inclination of direction from p1 to p2
-        rad = const.degrees(const.atan2(objective.position[1] - self.position[1], objective.position[0] - self.position[0]))
-        left = self.degrees - rad
-        if left < 0:
-            left = round(left + 360, const.FLOAT_PRECISION)
-        right = rad - self.degrees
-        if right < 0:
-            right = round(right + 360, const.FLOAT_PRECISION)
-        if right < left:
-            self.steer(right)
-        else:
-            self.steer(-left)
+        desiredDirection = position.getRadians(self.position, objective.position)
 
-        # TODO: if i am in crossroad i check if i can pass on left
+        # if I am in the crossroad i check if I can turn left
+        if objective.checkLeft:
+            # check for other vehicles
+            x,y = 1,1
+            if abs(const.cos(const.radians(self.degrees))) > abs(const.sin(const.radians(self.degrees))):
+                x,y = 4,0.5
+            else:
+                x,y = 0.5,4
+            collideArea = self.game.graphic_lib.graphic.Rect(objective.position[0]-const.TEN_PROPORTION*x,
+                                                             objective.position[1]+const.TEN_PROPORTION*y,
+                                                             const.TEN_PROPORTION*x,
+                                                             const.TEN_PROPORTION*y)
+            for vehicle in allvehicles:
+                if vehicle.id == self.id:
+                    continue
+                if self.crossroad.hasPrecedence(self,vehicle) or (not self.crossroad.hasPrecedence(vehicle,self) and self.id<vehicle.id):
+                    continue
+                if vehicle.graphic.colliderect(collideArea):
+                    self.brake(1)
+                    return
+
         currentLane,laneN = self.crossroad.getLaneFromPos(self.points[0])
         if objective.checkTLight and currentLane and currentLane.isA('entry') and currentLane.tLight.on:
             # we need to check tlight
@@ -1107,83 +980,76 @@ class Vehicle(GameRect):
                     objective = position.Waypoint(currentEndLane[0] - const.OCTUPLE_PROPORTION, currentEndLane[1],0)
             elif currentLane.tLight.state == const.TL_YELLOW:
                 if currentLane.isA('up'):
-                    objective1 = position.Waypoint(currentEndLane[0], currentEndLane[1] + const.PROPORTION,0)
+                    objective1 = position.Waypoint(currentEndLane[0], currentEndLane[1] + const.OCTUPLE_PROPORTION,0)
                 elif currentLane.isA('down'):
-                    objective1 = position.Waypoint(currentEndLane[0], currentEndLane[1] - const.PROPORTION,0)
+                    objective1 = position.Waypoint(currentEndLane[0], currentEndLane[1] - const.OCTUPLE_PROPORTION,0)
                 elif currentLane.isA('left'):
-                    objective1 = position.Waypoint(currentEndLane[0] + const.PROPORTION, currentEndLane[1],0)
+                    objective1 = position.Waypoint(currentEndLane[0] + const.OCTUPLE_PROPORTION, currentEndLane[1],0)
                 else:
-                    objective1 = position.Waypoint(currentEndLane[0] - const.PROPORTION, currentEndLane[1],0)
+                    objective1 = position.Waypoint(currentEndLane[0] - const.OCTUPLE_PROPORTION, currentEndLane[1],0)
                 # will I pass tlight in n cycles?
-                canPassTL = self.predict(20, objective1).desired
-                if not canPassTL:
-                    objective = objective1
-                    objective.velocity = 0
+                # if not canPassTL:
+                objective = objective1
+                objective.velocity = 0
 
         distanceFromObjective = position.distance(self.position, objective.position)
-        futureWaypoint = self.predict(objective = objective)
-        # print('--',futureWaypoint.desired)
 
-        #USE PREV_ACC AND PREV_DEC
-        if (objective.velocity > futureWaypoint.velocity) and futureWaypoint.desired:
-            if self.prev_acceleration>0.05:
-                self.prev_acceleration += self.prev_acceleration/self.velocity
+        if distanceFromObjective and objective.velocity > self.velocity:
+            if self.velocity:
+                accelerate = (objective.velocity-self.velocity) / self.velocity/2 / self.power*self.weight
+                self.accelerate(accelerate)
             else:
-                self.prev_acceleration = 0.1
-            # print(self.velocity, 'OK! :) but slow',(objective.velocity, futureWaypoint.velocity), self.prev_acceleration)
-            self.accelerate(self.prev_acceleration)
+                self.accelerate(1)
+        elif distanceFromObjective > const.DOUBLE_PROPORTION and self.velocity<10:
+            self.accelerate(1)
 
-        elif not futureWaypoint.desired and (objective.velocity > futureWaypoint.velocity or not futureWaypoint.velocity):
-            # print(self.velocity,'objective too far')
-            # print(futureWaypoint.velocity,futureWaypoint.position,futureWaypoint.desired,objective.position)
-            if self.prev_deceleration>0.05 and distanceFromObjective<150:
-                self.prev_deceleration -= self.prev_deceleration/3
-                # print(self.velocity,'brake',self.prev_deceleration)
-                self.brake(self.prev_deceleration)
-            else:
-                if self.prev_acceleration>0.05 and self.velocity>1:
-                    self.prev_acceleration += self.velocity/20/self.prev_acceleration
-                else:
-                    if self.velocity>1:
-                        self.prev_acceleration = 0.1
-                    else:
-                        self.prev_acceleration = 0.4
-                # print(self.velocity,'accelerate',self.prev_acceleration)
-                self.accelerate(self.prev_acceleration)
+        elif objective.velocity < self.velocity:
+            ntimes = distanceFromObjective / self.velocity*2.2 / const.VEHICLE_RENDER
+            if ntimes:
+                brake = self.velocity / ntimes / 4/self.power*self.weight
+                self.brake(brake)
 
-        elif distanceFromObjective > 0 and distanceFromObjective < 3*self.velocity and (objective.velocity < futureWaypoint.velocity or not futureWaypoint.desired):
-            if self.prev_acceleration>0.05 and distanceFromObjective>150:
-                self.prev_acceleration -= self.prev_acceleration/3
-                # print(self.velocity,'slow',self.prev_acceleration)
-                self.accelerate(self.prev_acceleration)
-            else:
-                if self.prev_deceleration>0.05:
-                    self.prev_deceleration += self.velocity/10/self.prev_deceleration
-                else:
-                    self.prev_deceleration = self.velocity/distanceFromObjective
-                # print(self.velocity,'brake',self.prev_deceleration)
-                self.brake(self.prev_deceleration)
-
-        else:
-            if self.prev_acceleration:
-                self.accelerate(self.prev_acceleration)
-            else:
-                self.brake(self.prev_deceleration)
-            # print(self.prev_acceleration,self.prev_deceleration,futureWaypoint.velocity,futureWaypoint.position,futureWaypoint.desired,objective.position)
-
-        # check for vehicles with more precedence
+        avoidx = const.cos(desiredDirection)
+        avoidy = const.sin(desiredDirection)
+        magnitude = 0
+        # check for other vehicles
+        points = self.calcFrontArea()
+        # collideArea = self.game.graphic_lib.graphic.Rect(points)
         for vehicle in allvehicles:
-            if vehicle.id != self.id:
-                if position.distance(vehicle.position,self.position)<300 and (self.crossroad.hasPrecedence(vehicle,self) or (not self.crossroad.hasPrecedence(self,vehicle) and vehicle.id<self.id)):
-                    ## explode vehicles if there is an accident?? ##
-                    # if position.getRectCollision(self.points,vehicle.points):
-                    #     print('Accident between %i and %i' %(self.id,vehicle.id))
-                    #     self.game.deleteObject(self)
-                    #     self.game.deleteObject(vehicle)
-                    if self.predictCollide(vehicle,40):#position.distance(vehicle.position,self.position)<180 or
-                        self.brake(1)# preventive action to avoid collision
-                        print('WARNING',self.id)
-                        break
+            if vehicle.id == self.id:
+                continue
+            if self.crossroad.hasPrecedence(self,vehicle) or (not self.crossroad.hasPrecedence(vehicle, self) and self.id<vehicle.id):
+                continue
+            distance = position.distance(vehicle.position, self.position)
+            if distance<100:
+                if position.getRectCollision(self.points,vehicle.points):
+                    print('Accident between %i and %i' %(self.id,vehicle.id))
+                    self.game.deleteObject(self)
+                    self.game.deleteObject(vehicle)
+                    return
+                if position.getRectCollision(points, vehicle.points):
+                    brake = self.velocity*2/distance
+                    magnitude = max(brake, magnitude)
+                    resAngle = position.getRadians(self.position,vehicle.position)
+                    avoidx -= const.cos(resAngle) / distance * vehicle.width
+                    avoidy -= const.sin(resAngle) / distance * vehicle.height
+
+        rad = const.degrees(const.atan2(avoidy,avoidx))
+        # rad = const.degrees(desiredDirection)
+
+        if magnitude:
+            self.brake(magnitude)
+
+        left = self.degrees - rad
+        if left < 0:
+            left = round(left + 360, const.FLOAT_PRECISION)
+        right = rad - self.degrees
+        if right < 0:
+            right = round(right + 360, const.FLOAT_PRECISION)
+        if right < left:
+            self.steer(right)
+        else:
+            self.steer(-left)
 
     # It returns determinant and if possible center of a rotation
     def calcDeterminant(self, degrees=None):
@@ -1246,16 +1112,39 @@ class Vehicle(GameRect):
             degrees = self.degrees
         mysin = const.sin(const.radians(degrees))
         mycos = const.cos(const.radians(degrees))
+        height = self.height+5
+        width = self.width+5
         return (
-            [round(position[0] + mysin*self.height + mycos*(self.width + 10), const.FLOAT_PRECISION),
-                round(position[1] + mysin*(self.width + 10) - mycos*self.height, const.FLOAT_PRECISION)],
-            [round(position[0] - mysin*self.height + mycos*(self.width + 10), const.FLOAT_PRECISION),
-                round(position[1] + mysin*(self.width + 10) + mycos*self.height, const.FLOAT_PRECISION)],
-            [round(position[0] - mysin*self.height - mycos*self.width, const.FLOAT_PRECISION),
-                round(position[1] - mysin*self.width + mycos*self.height, const.FLOAT_PRECISION)],
-            [round(position[0] + mysin*self.height - mycos*self.width, const.FLOAT_PRECISION),
-                round(position[1] - mysin*self.width - mycos*self.height, const.FLOAT_PRECISION)]
+            [round(position[0] + mysin*height + mycos*width, const.FLOAT_PRECISION),
+                round(position[1] + mysin*width - mycos*height, const.FLOAT_PRECISION)],
+            [round(position[0] - mysin*height + mycos*width, const.FLOAT_PRECISION),
+                round(position[1] + mysin*width + mycos*height, const.FLOAT_PRECISION)],
+            [round(position[0] - mysin*height - mycos*width, const.FLOAT_PRECISION),
+                round(position[1] - mysin*width + mycos*height, const.FLOAT_PRECISION)],
+            [round(position[0] + mysin*height - mycos*width, const.FLOAT_PRECISION),
+                round(position[1] - mysin*width - mycos*height, const.FLOAT_PRECISION)]
         )
+
+    # The front of the vehicle
+    def calcFrontArea(self):
+        mysin = const.sin(const.radians(self.degrees))
+        mycos = const.cos(const.radians(self.degrees))
+        points = list(self.calcPoints())
+        view_h = const.DOUBLE_PROPORTION
+        view_w = const.TEN_PROPORTION
+        points[2] = list(points[1])
+        points[3] = list(points[0])
+        points[0][0] += mysin*view_h + mycos*view_w
+        points[0][1] += mysin*view_w - mycos*view_h
+        points[1][0] += -mysin*view_h + mycos*view_w
+        points[1][1] += mysin*view_w + mycos*view_h
+
+        points[2][0] -= mysin*view_h
+        points[2][1] += mycos*view_h
+        points[3][0] += mysin*view_h
+        points[3][1] -= mycos*view_h
+
+        return points
 
 # Main vehicle
 class Car(Vehicle):
@@ -1347,15 +1236,15 @@ class Bus(Vehicle):
 
     # This vehicle can steer more than 33 deg
     def steer(self, power = 0):
-        if power < -60:
-            power = -60
-        if power > 60:
-            power = 60
+        if power < -50:
+            power = -50
+        if power > 50:
+            power = 50
         self.steerDeg = power
         # speed of steering
         difference = power - self.steerDeg
-        if difference > 4:
-            difference = 4
-        if difference < -4:
-            difference = -4
+        if difference > 2:
+            difference = 2
+        if difference < -2:
+            difference = -2
         self.steerDeg += difference

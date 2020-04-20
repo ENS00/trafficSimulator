@@ -57,6 +57,7 @@ class Game():
         self.statusLights = None                        # it memorize the last update of traffic lights
         self.vehicles = []                              # all active vehicles
         self.removeObjects = []                         # all vehicles to remove
+        self.autoSpawn = True                           # enable autospawn randomly
         self.randomSpawn = const.randint(100,300)       # every x time spawn a vehicle
         self.lastSpawn = 0                              # when the last spawn happened
 
@@ -92,6 +93,7 @@ class Game():
             if event.type == self.graphic_lib.graphic.QUIT:
                 exit()
         currentTimeFromStart = int(self.time.getTime())
+        # print(self.time.getFps())# show FPS on console
 
         # Controls all trafficlights
         if currentTimeFromStart//480 % 10 != self.statusLights:
@@ -99,10 +101,10 @@ class Game():
             self.crossroad.updateTLights()
 
         # Random spawn
-        if currentTimeFromStart > self.lastSpawn+self.randomSpawn:
+        if self.autoSpawn:# and currentTimeFromStart > self.lastSpawn+self.randomSpawn:
             self.lastSpawn = currentTimeFromStart+self.randomSpawn
-            self.randomSpawn = const.randint(100,300)
-            newVehicle = self.spawnVehicle()
+            self.randomSpawn = const.randint(20,100)
+            self.spawnVehicle()
 
         # The vehicles are moving
         for i in self.vehicles:
@@ -116,10 +118,9 @@ class Game():
                     i.drive(self.vehicles)
             else:
                 i.drive(self.vehicles)
-                # print(i.velocity)
 
         for i in self.removeObjects:
-            print(i.id,'removed')
+            # print(i.id,'removed')
             self.vehicles.remove(i)
             i.delete()
 
@@ -131,17 +132,21 @@ class Game():
     def spawnVehicle(self, entryL = None, exitL = None):
         if not entryL:
             entryL = self.crossroad.randomEntry()
+        if not entryL:
+            # print('Could not spawn vehicle right now')
+            return
         if not exitL:
-            exitL = self.crossroad.randomExit(entryL)#self.crossroad.getOppositeLanes(newVehicle,const.LEFT)[0])#
+            exitL = self.crossroad.randomExit(entryL)
         if(const.randint(0,7) > 5):
             newVehicle = objects.Bus(self, self.crossroad, entryL)
         else:
             newVehicle = objects.Car(self, self.crossroad, entryL)
         # For now we set that all cars do not turn
-        newVehicle.setObjective(exitL)
+        newVehicle.setObjective(exitL)#self.crossroad.getOppositeLanes(newVehicle,const.LEFT)[0])
         self.vehicles.append(newVehicle)
         return newVehicle
 
     # Adds an object to the list of objects to be removed
     def deleteObject(self, obj):
-        self.removeObjects.append(obj)
+        if obj not in self.removeObjects:
+            self.removeObjects.append(obj)

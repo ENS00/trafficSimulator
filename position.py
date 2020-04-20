@@ -1,19 +1,20 @@
-from const import atan2,fabs,pi,sqrt
+from const import atan2, fabs, hypot, pi, sqrt
 
-# A coordinate with a velocity, desired target and check traffic light attributes
+# A coordinate with a velocity and check traffic light attributes
 class Waypoint():
-    def __init__(self, x, y, velocity=None, desired=True, checkTLight=False):
+    def __init__(self, x, y, velocity=None, checkTLight=False, checkLeft=False):
         # Position of waypoint
         self.position = (x, y)
         # Target velocity
         self.velocity = velocity
         # Is this the point I was waiting for?
-        self.desired = desired
         self.checkTLight = checkTLight
+        # Do I have to check if there are vehicles on my left?
+        self.checkLeft = checkLeft
 
     # Gets a clone with same properties
     def clone(self):
-        return Waypoint(self.position[0], self.position[1], self.velocity, self.desired, self.checkTLight)
+        return Waypoint(self.position[0], self.position[1], self.velocity, self.checkTLight, self.checkLeft)
 
 # Gets a list of directions of a vector
 def getDirection(pos1, pos2):
@@ -41,11 +42,13 @@ def getCenter(point_list):
         center[1]/=count
         return center
 
-# Basic pythagorean algorithm to calculate the distance between two points [x,y]
+# Calculate the distance between two points [x,y]
 def distance(p1, p2):
-    dif1 = p1[0] - p2[0]
-    dif2 = p1[1] - p2[1]
-    return sqrt(dif1*dif1 + dif2*dif2)
+    return hypot(p1[0]-p2[0], p1[1]-p2[1])
+
+# Calculate angle of inclination in radians of 2 points [x,y]
+def getRadians(p1, p2):
+    return atan2(p2[1] - p1[1], p2[0] - p1[0])
 
 # Pos1 and pos2 define the line, it calculate the projection of the point [x,y] on the straight line
 def projection(point, pos1, pos2):

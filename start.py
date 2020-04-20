@@ -4,8 +4,10 @@ from game import Game
 class Gameloop(Game):
     def __init__(self):
         super().__init__()
+        #self.autoSpawn = False
         self.drawField()
         self.crossroad.turnOnTLights()
+        #self.spawnVehicle()
         while 1:
             self.loop()
 

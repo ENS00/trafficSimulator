@@ -1,8 +1,12 @@
 import const
+from os import environ
 
 # Main object that interacts with graphic library
 class Graphic():
     def __init__(self, title, width, height, background_color=const.BLACK, icon_path=None):
+        # set the window position
+        environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (const.W_POS_X,const.W_POS_Y)
+        
         const.pygame.init()                                             # Initialize library for current OS
 
         self.graphic = const.pygame

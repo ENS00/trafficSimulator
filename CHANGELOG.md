@@ -1,3 +1,11 @@
+# version 1.1.0
+## Added:
+- Vehicle movement is more detailed and precise
+- Vehicle checks to its left before the turn
+- The Collision Prediciton algorithm has been replaced with another more performing calculation
+- Vehicles can no longer spawn on each other
+- Added option to disable *autospawn* and control whenever spawn a vehicle
+
 # version 1.0.0
 ## Added:
 - Version system + changelog file
@@ -17,3 +25,4 @@ As a consequence to these changes, the performance has definitely improved, you 
 - Suitably move methods away from [position.py](./position.py)
 - Improve prediction collision (and how avoid it!)
 - Make some tests with different resolutions
+- Create a class to delegate the task of redirecting the output

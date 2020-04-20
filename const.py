@@ -1,4 +1,4 @@
-from math import atan2, ceil, copysign, cos, degrees, fabs, pi, radians, sin, sqrt
+from math import atan2, ceil, copysign, cos, degrees, fabs, hypot, pi, radians, sin, sqrt
 from random import gauss,randint
 import pygame
 
@@ -13,6 +13,10 @@ FPS = 60
 # Variables
 FLOAT_PRECISION = 5
 
+# window position
+W_POS_X = 350
+W_POS_Y = 100
+
 # window dimension
 W_WIDTH = 800
 W_HEIGHT = 800
@@ -20,7 +24,9 @@ W_TITLE = 'Traffico'
 PROPORTION = round(sqrt(W_WIDTH*W_HEIGHT)/200,FLOAT_PRECISION)   # proportion used for other calcs
 DOUBLE_PROPORTION = PROPORTION*2
 OCTUPLE_PROPORTION = PROPORTION*8
-TWELVE_PROPORTION = PROPORTION*12
+TEN_PROPORTION = PROPORTION*10
+EIGHTEEN_PROPORTION = PROPORTION*18
+THIRTY_PROPORTION = PROPORTION*30
 TIMEPANEL_SIZE = max(round(W_WIDTH/22.5),16)
 HALF_CAR_WIDTH = PROPORTION*15/4      # dimension of the car
 HALF_CAR_HEIGHT = PROPORTION*9/4      # dimension of the car
@@ -28,17 +34,17 @@ CAR_WHEELS_POSITION = PROPORTION*2    # distance of wheel from the rear (or the 
 HALF_BUS_WIDTH = PROPORTION*25/4      # dimension of the bus 
 HALF_BUS_HEIGHT = PROPORTION*9/4      # dimension of the bus
 BUS_WHEELS_POSITION = PROPORTION*4    # distance of wheel from the rear (or the front) of the bus
-TRUCK_WIDTH = PROPORTION*11         # dimension of the truck
-TRUCK_HEIGHT = PROPORTION*13        # dimension of the truck
-TRAILER_WIDTH = PROPORTION*20       # dimension of the trailer of the truck
-TRAILER_HEIGHT = PROPORTION*11      # dimension of the trailer of the truck
+# TRUCK_WIDTH = PROPORTION*11         # dimension of the truck
+# TRUCK_HEIGHT = PROPORTION*13        # dimension of the truck
+# TRAILER_WIDTH = PROPORTION*20       # dimension of the trailer of the truck
+# TRAILER_HEIGHT = PROPORTION*11      # dimension of the trailer of the truck
 
 ROAD_LINE_WIDTH = int(PROPORTION*11/2)  # width of the white line
 ROAD_LINE_SIZE = int(DOUBLE_PROPORTION) # size of the white line
 ROAD_LINE_THICKNESS = PROPORTION*200/11
 STOPLINE_WIDTH = ROAD_LINE_SIZE+2
 VEHICLE_RENDER = PROPORTION*TIME_SPEED/20000
-VEHICLE_SPAWN_SPEED = 40
+VEHICLE_SPAWN_SPEED = 30
 VEHICLE_FRICTION = 0.0004    # friction constant combined with car acceleration we get the maximum velocity of a vehicle
 CAR_ACCELERATION = 10        # this number permits to have a maximum velocity of 90
 CAR_WEIGHT = 50
