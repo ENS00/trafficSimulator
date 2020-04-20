@@ -96,15 +96,15 @@ def getCollision(pos, points):
 
 # Calculates if there is a collision between two rectangles, using the betweenProjection method for every point
 def getRectCollision(points1, points2):
-    side1_collision = betweenProjection(points1[0],points2[0],points2[1],0) and betweenProjection(points1[0],points2[1],points2[2],0)
-    side2_collision = betweenProjection(points1[1],points2[0],points2[1],0) and betweenProjection(points1[1],points2[1],points2[2],0)
-    side3_collision = betweenProjection(points1[2],points2[0],points2[1],0) and betweenProjection(points1[2],points2[1],points2[2],0)
-    side4_collision = betweenProjection(points1[3],points2[0],points2[1],0) and betweenProjection(points1[3],points2[1],points2[2],0)
+    side1_collision = betweenProjection(points1[0], points2[0], points2[1], 0) and betweenProjection(points1[0], points2[1], points2[2], 0)
+    side2_collision = betweenProjection(points1[1], points2[0], points2[1], 0) and betweenProjection(points1[1], points2[1], points2[2], 0)
+    side3_collision = betweenProjection(points1[2], points2[0], points2[1], 0) and betweenProjection(points1[2], points2[1], points2[2], 0)
+    side4_collision = betweenProjection(points1[3], points2[0], points2[1], 0) and betweenProjection(points1[3], points2[1], points2[2], 0)
     first_check = side1_collision or side2_collision or side3_collision or side4_collision
     if first_check:
         return True
-    side1_collision = betweenProjection(points2[0],points1[0],points1[1],0) and betweenProjection(points2[0],points1[1],points1[2],0)
-    side2_collision = betweenProjection(points2[1],points1[0],points1[1],0) and betweenProjection(points2[1],points1[1],points1[2],0)
-    side3_collision = betweenProjection(points2[2],points1[0],points1[1],0) and betweenProjection(points2[2],points1[1],points1[2],0)
-    side4_collision = betweenProjection(points2[3],points1[0],points1[1],0) and betweenProjection(points2[3],points1[1],points1[2],0)
+    side1_collision = betweenProjection(points2[0], points1[0], points1[1], 0) and betweenProjection(points2[0], points1[1], points1[2], 0)
+    side2_collision = betweenProjection(points2[1], points1[0], points1[1], 0) and betweenProjection(points2[1], points1[1], points1[2], 0)
+    side3_collision = betweenProjection(points2[2], points1[0], points1[1], 0) and betweenProjection(points2[2], points1[1], points1[2], 0)
+    side4_collision = betweenProjection(points2[3], points1[0], points1[1], 0) and betweenProjection(points2[3], points1[1], points1[2], 0)
     return side1_collision or side2_collision or side3_collision or side4_collision

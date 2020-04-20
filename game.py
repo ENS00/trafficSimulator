@@ -1,53 +1,16 @@
 import const
 import graphic_lib
 import gametime
-import objects
-
-# ID assigner uniquely identifies an object
-class IDassigner():
-    def __init__(self):
-        self.__idassign = 0
-        self.objects = []
-
-    # Gets an unique number, starting from 1
-    def getNewID(self, obj):
-        self.__idassign += 1
-        self.objects.append(obj)
-        return self.__idassign
-
-    # Removes the object from the listed game items
-    def delete(self, obj):
-        self.objects.remove(obj)
-
-# Shows graphically the current in-game time (HH:MM)
-class TimePanel(objects.GameRect):
-    def __init__(self, game, gametime, size = const.TIMEPANEL_SIZE):
-        super().__init__(game, const.BLACK, ([const.W_WIDTH/30,const.W_HEIGHT/50],
-                                             [size*2.5,const.W_HEIGHT/50],
-                                             [size*2.5,size],
-                                             [const.W_WIDTH/30,size]))
-        self.gametime = gametime
-        self.value = '00:00'
-        self.size = size
-
-    # Updates the clock and draws it
-    def update(self):
-        self.value = self.gametime.getFormattedTime()
-        self.draw()
-
-    # Draws on screen the current time
-    def draw(self):
-        if not self.graphic:
-            self.graphic = self.graphic_lib.graphic.draw.polygon(self.graphic_lib.screen, self.color, self.points)
-            # self.graphic_lib.updateAreas.append(self.graphic)
-            self.position = self.graphic.topleft
-        self.graphic = self.graphic_lib.drawText(self.position, self.value, self.size)
+import roads
+import vehicles
+from objects import IDassigner
+from timepanel import TimePanel
 
 # Everything is created here
 class Game():
     # Creates window, inizializes time, id assigner
     def __init__(self):
-        self.graphic_lib = graphic_lib.Graphic(const.W_TITLE,const.W_WIDTH,const.W_HEIGHT,const.BACKGROUND_COLOR,const.ICON_PATH)
+        self.graphic_lib = graphic_lib.Graphic(const.W_TITLE, const.W_WIDTH, const.W_HEIGHT, const.BACKGROUND_COLOR, const.ICON_PATH)
 
         self.idassigner = IDassigner()
 
@@ -64,13 +27,13 @@ class Game():
     # Inizializes roads and draws crossroad (the crossroad object call for every object it owns the draw method)
     def drawField(self):
         # ROADS
-        road_north = objects.Road(self,(const.W_WIDTH/2,0),(const.W_WIDTH/2,const.W_HEIGHT/2))
-        road_east = objects.Road(self,(const.W_WIDTH,const.W_HEIGHT/2),(const.W_WIDTH/2,const.W_HEIGHT/2))
-        road_south = objects.Road(self,(const.W_WIDTH/2,const.W_HEIGHT),(const.W_WIDTH/2,const.W_HEIGHT/2))
-        road_west = objects.Road(self,(0,const.W_HEIGHT/2),(const.W_WIDTH/2,const.W_HEIGHT/2))
+        road_north = roads.Road(self,(const.W_WIDTH/2,0),(const.W_WIDTH/2,const.W_HEIGHT/2))
+        road_east = roads.Road(self,(const.W_WIDTH,const.W_HEIGHT/2),(const.W_WIDTH/2,const.W_HEIGHT/2))
+        road_south = roads.Road(self,(const.W_WIDTH/2,const.W_HEIGHT),(const.W_WIDTH/2,const.W_HEIGHT/2))
+        road_west = roads.Road(self,(0,const.W_HEIGHT/2),(const.W_WIDTH/2,const.W_HEIGHT/2))
 
         # crossroad
-        self.crossroad = objects.Crossroad(self,(road_north,road_east,road_south,road_west))
+        self.crossroad = roads.Crossroad(self,(road_north,road_east,road_south,road_west))
 
     # Draws everything and update properties
     def updateField(self):
@@ -138,9 +101,9 @@ class Game():
         if not exitL:
             exitL = self.crossroad.randomExit(entryL)
         if(const.randint(0,7) > 5):
-            newVehicle = objects.Bus(self, self.crossroad, entryL)
+            newVehicle = vehicles.Bus(self, self.crossroad, entryL)
         else:
-            newVehicle = objects.Car(self, self.crossroad, entryL)
+            newVehicle = vehicles.Car(self, self.crossroad, entryL)
         # For now we set that all cars do not turn
         newVehicle.setObjective(exitL)#self.crossroad.getOppositeLanes(newVehicle,const.LEFT)[0])
         self.vehicles.append(newVehicle)
