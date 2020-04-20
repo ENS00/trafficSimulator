@@ -101,9 +101,9 @@ class Game():
             self.crossroad.updateTLights()
 
         # Random spawn
-        if self.autoSpawn:# and currentTimeFromStart > self.lastSpawn+self.randomSpawn:
+        if self.autoSpawn and currentTimeFromStart > self.lastSpawn+self.randomSpawn:
             self.lastSpawn = currentTimeFromStart+self.randomSpawn
-            self.randomSpawn = const.randint(20,100)
+            self.randomSpawn = const.randint(100,300)
             self.spawnVehicle()
 
         # The vehicles are moving
@@ -133,7 +133,7 @@ class Game():
         if not entryL:
             entryL = self.crossroad.randomEntry()
         if not entryL:
-            # print('Could not spawn vehicle right now')
+            print('Could not spawn vehicle right now')
             return
         if not exitL:
             exitL = self.crossroad.randomExit(entryL)
