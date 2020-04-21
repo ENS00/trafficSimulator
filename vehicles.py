@@ -255,7 +255,6 @@ class Vehicle(GameRect):
                 if (self.crossroad.hasPrecedence(self,vehicle) or (not self.crossroad.hasPrecedence(vehicle,self) and self.id<vehicle.id)) and self.timeStop>600 and self.velocity<2:
                     # he changes his mind and prefers to go straight
                     lane = self.crossroad.getOppositeLanes(self)[0]
-                    print('voglio andare dritto')
                     self.waypoints=[position.Waypoint(lane.endLanePoints[1][0], lane.endLanePoints[1][1], 90, checkTLight=True)]
                     return
                 if vehicle.graphic.colliderect(collideArea):
