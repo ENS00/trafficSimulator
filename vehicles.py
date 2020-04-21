@@ -7,6 +7,11 @@ class Vehicle(GameRect):
         self.game = game
         self.position = lane.startLanePoints[side]
 
+        self.spawnTime = game.currentTimeFromStart
+        self.startTimeStop = 0
+        self.timeStop = 0 # how long am I waiting to leave
+        self.totalTimeStop = 0 # how long am I waiting to leave
+
         self.velocity = const.VEHICLE_SPAWN_SPEED
         self.power = power
         self.steerDeg = 0
@@ -40,7 +45,15 @@ class Vehicle(GameRect):
             self.velocity = round(self.velocity - const.fabs(self.steerDeg)*0.0005*pow(self.velocity,0.3), const.FLOAT_PRECISION)
         if self.velocity < 0:
             self.velocity = 0
+            if not self.startTimeStop:
+                self.startTimeStop = self.game.currentTimeFromStart
+            self.timeStop = self.game.currentTimeFromStart - self.startTimeStop
         else:
+            if self.startTimeStop and self.velocity>5:
+                self.totalTimeStop += self.timeStop
+                self.startTimeStop = 0
+            elif self.startTimeStop:
+                self.timeStop = self.game.currentTimeFromStart - self.startTimeStop
             if self.steerDeg:
                 determinant,center = self.calcDeterminant()
                 if center:
@@ -66,10 +79,10 @@ class Vehicle(GameRect):
             power = 33
         # speed of steering
         difference = power - self.steerDeg
-        if difference > 2:
-            difference = 2
-        if difference < -2:
-            difference = -2
+        if difference > 3:
+            difference = 3
+        if difference < -3:
+            difference = -3
         self.steerDeg += difference
 
     # Modifies his acceleration
@@ -213,34 +226,38 @@ class Vehicle(GameRect):
         if objective.checkLeft:
             # check for other vehicles
             if self.degrees>45 and self.degrees<=135:
-                # right
+                # down
                 collideArea = self.game.graphic_lib.graphic.Rect(self.points[0][0],
-                                                                self.points[0][1]-const.ROAD_LINE_THICKNESS*1.6,
-                                                                const.TEN_PROPORTION,
-                                                                const.ROAD_LINE_THICKNESS*2)
+                                                                self.points[0][1],
+                                                                const.ROAD_LINE_THICKNESS*0.5,
+                                                                const.TEN_PROPORTION)
             elif self.degrees>135 and self.degrees<=225:
-                # up
-                collideArea = self.game.graphic_lib.graphic.Rect(self.points[0][0]-const.TEN_PROPORTION,
-                                                                self.points[0][1]-const.ROAD_LINE_THICKNESS*1.6,
-                                                                const.TEN_PROPORTION,
-                                                                const.ROAD_LINE_THICKNESS*2)
-            elif self.degrees>225 and self.degrees<=315:
                 # left
                 collideArea = self.game.graphic_lib.graphic.Rect(self.points[0][0]-const.TEN_PROPORTION,
                                                                 self.points[0][1],
                                                                 const.TEN_PROPORTION,
-                                                                const.ROAD_LINE_THICKNESS*2)
+                                                                const.ROAD_LINE_THICKNESS*0.5)
+            elif self.degrees>225 and self.degrees<=315:
+                # up
+                collideArea = self.game.graphic_lib.graphic.Rect(self.points[0][0]-const.ROAD_LINE_THICKNESS*0.5,
+                                                                self.points[0][1]-const.TEN_PROPORTION,
+                                                                const.ROAD_LINE_THICKNESS*0.5,
+                                                                const.TEN_PROPORTION)
             else:
-                # down
+                # right
                 collideArea = self.game.graphic_lib.graphic.Rect(self.points[0][0],
-                                                                self.points[0][1],
+                                                                self.points[0][1]-const.ROAD_LINE_THICKNESS*0.5,
                                                                 const.TEN_PROPORTION,
-                                                                const.ROAD_LINE_THICKNESS*2)
+                                                                const.ROAD_LINE_THICKNESS*0.5)
             for vehicle in allvehicles:
                 if vehicle.id == self.id:
                     continue
-                if self.crossroad.hasPrecedence(self,vehicle) or (not self.crossroad.hasPrecedence(vehicle,self) and self.id<vehicle.id) and self.velocity<10:
-                    continue
+                if (self.crossroad.hasPrecedence(self,vehicle) or (not self.crossroad.hasPrecedence(vehicle,self) and self.id<vehicle.id)) and self.timeStop>600 and self.velocity<2:
+                    # he changes his mind and prefers to go straight
+                    lane = self.crossroad.getOppositeLanes(self)[0]
+                    print('voglio andare dritto')
+                    self.waypoints=[position.Waypoint(lane.endLanePoints[1][0], lane.endLanePoints[1][1], 90, checkTLight=True)]
+                    return
                 if vehicle.graphic.colliderect(collideArea):
                     self.brake(1)
                     return
@@ -309,11 +326,11 @@ class Vehicle(GameRect):
                     self.game.deleteObject(vehicle)
                     return
                 if position.getRectCollision(points, vehicle.points):
-                    brake = self.velocity*2/distance
+                    brake = self.velocity*4/distance
                     magnitude = max(brake, magnitude)
                     resAngle = position.getRadians(self.position,vehicle.position)
-                    avoidx -= const.cos(resAngle) / distance * vehicle.width
-                    avoidy -= const.sin(resAngle) / distance * vehicle.height
+                    avoidx -= const.cos(resAngle) / distance * vehicle.width*2
+                    avoidy -= const.sin(resAngle) / distance * vehicle.height*2
 
         rad = const.degrees(const.atan2(avoidy,avoidx))
         # rad = const.degrees(desiredDirection)
@@ -524,8 +541,8 @@ class Bus(Vehicle):
         self.steerDeg = power
         # speed of steering
         difference = power - self.steerDeg
-        if difference > 2:
-            difference = 2
-        if difference < -2:
-            difference = -2
+        if difference > 3:
+            difference = 3
+        if difference < -3:
+            difference = -3
         self.steerDeg += difference

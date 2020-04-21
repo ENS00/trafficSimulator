@@ -55,17 +55,17 @@ class Game():
         for event in events:
             if event.type == self.graphic_lib.graphic.QUIT:
                 exit()
-        currentTimeFromStart = int(self.time.getTime())
+        self.currentTimeFromStart = self.time.getTime()
         # print(self.time.getFps())# show FPS on console
 
         # Controls all trafficlights
-        if currentTimeFromStart//480 % 10 != self.statusLights:
-            self.statusLights = currentTimeFromStart//480 % 10
+        if self.currentTimeFromStart//480 % 10 != self.statusLights:
+            self.statusLights = self.currentTimeFromStart//480 % 10
             self.crossroad.updateTLights()
 
         # Random spawn
-        if self.autoSpawn and currentTimeFromStart > self.lastSpawn+self.randomSpawn:
-            self.lastSpawn = currentTimeFromStart+self.randomSpawn
+        if self.autoSpawn and self.currentTimeFromStart > self.lastSpawn+self.randomSpawn:
+            self.lastSpawn = self.currentTimeFromStart+self.randomSpawn
             self.randomSpawn = const.randint(100,300)
             self.spawnVehicle()
 
@@ -76,6 +76,7 @@ class Game():
                 left_side_out = i.points[3][0] > const.W_WIDTH or i.points[3][1] > const.W_HEIGHT or i.points[3][0] < 0 or i.points[3][1] < 0
                 if left_side_out or right_side_out:
                     # Destroy object
+                    #print(i.id,'passed the crossroad in',self.time.getFormattedTime(currentTimeFromStart-i.spawnTime))
                     self.deleteObject(i)
                 else:
                     i.drive(self.vehicles)
@@ -105,7 +106,7 @@ class Game():
         else:
             newVehicle = vehicles.Car(self, self.crossroad, entryL)
         # For now we set that all cars do not turn
-        newVehicle.setObjective(exitL)#self.crossroad.getOppositeLanes(newVehicle,const.LEFT)[0])
+        newVehicle.setObjective(exitL)#self.crossroad.getOppositeLanes(newVehicle,const.LEFT)[0])#
         self.vehicles.append(newVehicle)
         return newVehicle
 

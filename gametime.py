@@ -18,11 +18,13 @@ class Gametime():
         # self.timeFromStart += difference*self.getFps()/self.fps
         if self.getFps():
             self.timeFromStart += self.ratio/self.fps
-        return self.timeFromStart
+        return int(self.timeFromStart)
 
     def getFps(self):
         return self.clock.get_fps()
 
     # Get a formatted version of current time (from 113 to 01:53)
-    def getFormattedTime(self):
-        return strftime('%H:%M',gmtime(self.timeFromStart))#'%H:%M:%S'
+    def getFormattedTime(self, time=None):
+        if not time:
+            time = self.timeFromStart
+        return strftime('%H:%M',gmtime(time))#'%H:%M:%S'

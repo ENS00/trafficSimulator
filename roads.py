@@ -309,10 +309,10 @@ class Lane(RoadObject):
                                                                           (self.points[1][0], self.points[2][1] + borderW)
                                                                          )))
             for posx in road_lines:
-                self.road_lines.append(objects.GameRect(self.game, const.WHITE, ((posx, self.pstart[1]-self.dim/32),
-                                                                                 (posx+self.lineW, self.pstart[1]-self.dim/32),
-                                                                                 (posx+self.lineW, self.pstart[1]+self.dim/32),
-                                                                                 (posx, self.pstart[1]+self.dim/32)
+                self.road_lines.append(objects.GameRect(self.game, const.WHITE, ((posx, self.pstart[1] - self.dim/32),
+                                                                                 (posx + self.lineW, self.pstart[1] - self.dim/32),
+                                                                                 (posx + self.lineW, self.pstart[1] + self.dim/32),
+                                                                                 (posx, self.pstart[1] + self.dim/32)
                                                                                 )))
             if self.isA('entry'):
                 if self.stopLine:

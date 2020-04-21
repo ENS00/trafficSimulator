@@ -7,7 +7,7 @@ pygame.init()
 # here there are all constants
 # CAR_WH_RATIO
 # CAR_DIM=36
-TIME_SPEED = 200  # REAL 1s = GAME 200s
+TIME_SPEED = 100  # REAL 1s = GAME 200s
 FPS = 60
 
 # Variables

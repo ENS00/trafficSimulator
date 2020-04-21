@@ -1,3 +1,8 @@
+# version 1.1.1
+## Added:
+- Vehicle that has to turn left, awaits some time and if he can't still turn, he will choose to go straight instead
+- Little fixes
+
 # version 1.1.0
 ## Added:
 - Vehicle movement is more detailed and precise
