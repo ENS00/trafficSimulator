@@ -2,34 +2,36 @@ from math import atan2, ceil, copysign, cos, degrees, fabs, hypot, pi, radians, 
 from random import gauss,randint
 import pygame
 # for read configuration.ini
-from configparser import RawConfigParser
+from configparser import ConfigParser
+from os import path
 
 pygame.init()
-
-CONF_FILE_PATH = r'C:/Users/ENSOO/Desktop/github/trafficSimulator/configuration.ini'
-config = RawConfigParser()
-config.read(CONF_FILE_PATH)
+CONF_FILE_PATH = r'configuration.ini'
+config = ConfigParser()
 # default values without using the file
-windowConfiguration = {'width': 400,
-                       'height': 800,
-                       'position_x': 350,
-                       'position_y': 100}
-gameConfiguration = {'speed': 2,
-                     }
-assetsConfiguration = {}
+config.read_dict({'Window': {'width': 800,
+                             'height': 800,
+                             'position_x': 350,
+                             'position_y': 100
+                            },
+                  'Game': {'speed': 2,
+                           'traffic_light_duration': 60
+                          },
+                  'Assets': {}
+                })
 # update values read from the file
-windowConfiguration.update(config.items('Window'))
-gameConfiguration.update(config.items('Game'))
-assetsConfiguration.update(config.items('Assets'))
+config.read(CONF_FILE_PATH)
+windowConfiguration = dict(config.items('Window'))
+gameConfiguration = dict(config.items('Game'))
+assetsConfiguration = dict(config.items('Assets'))
 
 
 # fix wrong values
 gameConfiguration['speed'] = int(gameConfiguration['speed'])
-if gameConfiguration['speed']<1 or gameConfiguration['speed']>3:
+if gameConfiguration['speed'] < 1 or gameConfiguration['speed'] > 3:
     gameConfiguration['speed'] = 2
 
 CONFIGURATION_SPEED = gameConfiguration['speed']
-# here there are all constants
 TIME_SPEED = 240*(CONFIGURATION_SPEED-1)   # REAL 1s = GAME (240+x)s
 FPS = 300
 
