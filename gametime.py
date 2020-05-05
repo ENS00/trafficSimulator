@@ -13,11 +13,8 @@ class Gametime():
 
     # Get the current in-game time
     def getTime(self):
-        self.clock.tick(self.fps) #necessary for fps
-        # difference = self.graphic_lib.graphic.time.get_ticks()*self.ratio - self.timeFromStart
-        # self.timeFromStart += difference*self.getFps()/self.fps
-        if self.getFps():
-            self.timeFromStart += self.ratio/self.fps
+        self.clock.tick(self.fps) # necessary for fps
+        self.timeFromStart += self.ratio/self.fps
         return int(self.timeFromStart)
 
     def getFps(self):

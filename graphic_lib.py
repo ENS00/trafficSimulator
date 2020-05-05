@@ -3,7 +3,7 @@ from os import environ
 
 # Main object that interacts with graphic library
 class Graphic():
-    def __init__(self, title, width, height, background_color=const.BLACK, icon_path=None):
+    def __init__(self, title, width, height, background_color = const.BLACK, icon_path = None):
         # set the window position
         environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (const.W_POS_X,const.W_POS_Y)
         
@@ -23,23 +23,15 @@ class Graphic():
         self.height = height
         self.background_color = background_color
         self.fonts = {}
+        for size in range(8, 90):                                       # Loads all default fonts
+            self.fonts[size] = self.graphic.font.Font(None, size)
         self.screen.fill(background_color)                              # Draws all the background
         self.graphic.display.flip()                                     # Updates every pixel of the window
 
-        self.updateFrequency = round(1000/const.FPS)
-
     # Utility to draw a text on the window
-    def drawText(self, pos, text, size, font=None, color=const.BLACK):
-        if font != None:
-            font = const.FONT_PATH+font+const.FONT_EXT
-            if font in self.fonts:
-                myfont = self.fonts[font]
-            else:
-                myfont = self.graphic.font.Font(font, size)
-                self.fonts[font] = myfont
-        else:
-            myfont = self.graphic.font.Font(font, size)
-        text = myfont.render(text, 1, color)
+    def drawText(self, pos, text, size, color = const.BLACK):
+        myfont = self.fonts[size]
+        text = myfont.render(str(text), 1, color)
         return self.screen.blit(text, pos)
 
     def update(self):

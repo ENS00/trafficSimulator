@@ -7,10 +7,9 @@ class Gameloop(Game):
         #self.autoSpawn = False
         self.drawField()
         self.crossroad.turnOnTLights()
-        #self.spawnVehicle()
-        while 1:
-            self.loop()
 
 # main method
 if __name__ == "__main__":
     game = Gameloop()
+    while 1:
+        game.loop()

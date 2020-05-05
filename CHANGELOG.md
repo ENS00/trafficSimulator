@@ -1,7 +1,24 @@
+# version 1.2.0
+## Added:
+- Vehicle that has to turn left, awaits some time and if he can't still turn, he will choose to go straight instead
+- Vehicle movement is managed by an asynchronous process, so it's untied from render process (closely related with fps)
+- Easy [configuration file](configuration.ini) for common users
+- Now the simulator uses only default font
+- UI classes
+- Little fixes
+
+---
+
+## Things To Do:
+- [ ] Suitably move methods away from [position.py](./position.py)
+- [ ] Make some tests with different resolutions
+- [ ] Create a class to delegate the task of redirecting the output
+
+<br><br><br>
+
 # version 1.1.1
 ## Added:
 - Vehicle that has to turn left, awaits some time and if he can't still turn, he will choose to go straight instead
-- Little fixes
 
 # version 1.1.0
 ## Added:
@@ -10,6 +27,7 @@
 - The Collision Prediciton algorithm has been replaced with another more performing calculation
 - Vehicles can no longer spawn on each other
 - Added option to disable *autospawn* and control whenever spawn a vehicle
+- Window positioning
 
 # version 1.0.0
 ## Added:
@@ -22,12 +40,3 @@
 - Little bug fix
 
 As a consequence to these changes, the performance has definitely improved, you don't notice the lag although there is a little
-
----
-
-## Things To Do:
-- Move classes in different files to simplify management
-- Suitably move methods away from [position.py](./position.py)
-- Improve prediction collision (and how avoid it!)
-- Make some tests with different resolutions
-- Create a class to delegate the task of redirecting the output

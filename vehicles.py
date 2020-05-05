@@ -31,9 +31,9 @@ class Vehicle(GameRect):
 
     # Modifies all its parameters and position, according to its acceleration, deceleration and steering
     def update(self):
-        self.velocity += self.acceleration*self.power/self.weight
+        self.velocity += self.acceleration/2*self.power/self.weight
         if self.velocity > 0:
-            self.velocity -= self.deceleration*4*self.power/self.weight
+            self.velocity -= self.deceleration/2*self.power/self.weight
         # prev_acceleration prev_deceleration used in predict function
         self.prev_acceleration = self.acceleration
         self.prev_deceleration = self.deceleration
@@ -49,9 +49,10 @@ class Vehicle(GameRect):
                 self.startTimeStop = self.game.currentTimeFromStart
             self.timeStop = self.game.currentTimeFromStart - self.startTimeStop
         else:
-            if self.startTimeStop and self.velocity>5:
+            if self.startTimeStop and self.velocity>10:
                 self.totalTimeStop += self.timeStop
                 self.startTimeStop = 0
+                self.timeStop = 0
             elif self.startTimeStop:
                 self.timeStop = self.game.currentTimeFromStart - self.startTimeStop
             if self.steerDeg:
@@ -255,7 +256,7 @@ class Vehicle(GameRect):
                 if (self.crossroad.hasPrecedence(self,vehicle) or (not self.crossroad.hasPrecedence(vehicle,self) and self.id<vehicle.id)) and self.timeStop>600 and self.velocity<2:
                     # he changes his mind and prefers to go straight
                     lane = self.crossroad.getOppositeLanes(self)[0]
-                    self.waypoints=[position.Waypoint(lane.endLanePoints[1][0], lane.endLanePoints[1][1], 90, checkTLight=True)]
+                    self.waypoints = [position.Waypoint(lane.endLanePoints[1][0], lane.endLanePoints[1][1], 90, checkTLight=True)]
                     return
                 if vehicle.graphic.colliderect(collideArea):
                     self.brake(1)
@@ -268,22 +269,22 @@ class Vehicle(GameRect):
             objectiveLane,laneObjN = self.crossroad.getLaneFromPos(objective.position)
             if currentLane.tLight.state == const.TL_RED:
                 if currentLane.isA('up'):
-                    objective = position.Waypoint(currentEndLane[0], currentEndLane[1] + const.OCTUPLE_PROPORTION,0)
+                    objective = position.Waypoint(currentEndLane[0], currentEndLane[1] + const.OCTUPLE_PROPORTION, 0)
                 elif currentLane.isA('down'):
-                    objective = position.Waypoint(currentEndLane[0], currentEndLane[1] - const.OCTUPLE_PROPORTION,0)
+                    objective = position.Waypoint(currentEndLane[0], currentEndLane[1] - const.OCTUPLE_PROPORTION, 0)
                 elif currentLane.isA('left'):
-                    objective = position.Waypoint(currentEndLane[0] + const.OCTUPLE_PROPORTION, currentEndLane[1],0)
+                    objective = position.Waypoint(currentEndLane[0] + const.OCTUPLE_PROPORTION, currentEndLane[1], 0)
                 else:
-                    objective = position.Waypoint(currentEndLane[0] - const.OCTUPLE_PROPORTION, currentEndLane[1],0)
+                    objective = position.Waypoint(currentEndLane[0] - const.OCTUPLE_PROPORTION, currentEndLane[1], 0)
             elif currentLane.tLight.state == const.TL_YELLOW:
                 if currentLane.isA('up'):
-                    objective1 = position.Waypoint(currentEndLane[0], currentEndLane[1] + const.OCTUPLE_PROPORTION,0)
+                    objective1 = position.Waypoint(currentEndLane[0], currentEndLane[1] + const.OCTUPLE_PROPORTION, 0)
                 elif currentLane.isA('down'):
-                    objective1 = position.Waypoint(currentEndLane[0], currentEndLane[1] - const.OCTUPLE_PROPORTION,0)
+                    objective1 = position.Waypoint(currentEndLane[0], currentEndLane[1] - const.OCTUPLE_PROPORTION, 0)
                 elif currentLane.isA('left'):
-                    objective1 = position.Waypoint(currentEndLane[0] + const.OCTUPLE_PROPORTION, currentEndLane[1],0)
+                    objective1 = position.Waypoint(currentEndLane[0] + const.OCTUPLE_PROPORTION, currentEndLane[1], 0)
                 else:
-                    objective1 = position.Waypoint(currentEndLane[0] - const.OCTUPLE_PROPORTION, currentEndLane[1],0)
+                    objective1 = position.Waypoint(currentEndLane[0] - const.OCTUPLE_PROPORTION, currentEndLane[1], 0)
                 # will I pass tlight in n cycles?
                 # if not canPassTL:
                 objective = objective1
@@ -300,7 +301,7 @@ class Vehicle(GameRect):
         elif distanceFromObjective > const.DOUBLE_PROPORTION and self.velocity<10:
             self.accelerate(0.5)
 
-        elif objective.velocity < self.velocity:
+        elif objective.velocity < self.velocity and distanceFromObjective<100:
             ntimes = distanceFromObjective / self.velocity*2 / const.VEHICLE_RENDER
             if ntimes:
                 brake = self.velocity / ntimes / 4/self.power/self.power*self.weight*self.weight
@@ -324,15 +325,20 @@ class Vehicle(GameRect):
                     self.game.deleteObject(self)
                     self.game.deleteObject(vehicle)
                     return
-                if position.getRectCollision(points, vehicle.points):
-                    brake = self.velocity*4/distance
-                    magnitude = max(brake, magnitude)
+                if position.getRectCollision(points, vehicle.points) and self.timeStop<600 and self.velocity>10:
+                    magnitude = self.velocity*4/distance
                     resAngle = position.getRadians(self.position,vehicle.position)
                     avoidx -= const.cos(resAngle) / distance * vehicle.width*2
                     avoidy -= const.sin(resAngle) / distance * vehicle.height*2
+                else:
+                    points = self.calcFrontArea(view_w = const.QUADRUPLE_PROPORTION)
+                    if position.getRectCollision(points, vehicle.points):
+                        magnitude = self.velocity*4/distance
+                        resAngle = position.getRadians(self.position,vehicle.position)
+                        avoidx -= const.cos(resAngle) / distance * vehicle.width*2
+                        avoidy -= const.sin(resAngle) / distance * vehicle.height*2
 
         rad = const.degrees(const.atan2(avoidy,avoidx))
-        # rad = const.degrees(desiredDirection)
 
         if magnitude:
             self.brake(magnitude)
@@ -368,7 +374,6 @@ class Vehicle(GameRect):
             rearA = -rearA
             rearB = -rearB
             rearC = -rearC
-        # it could be -x -y = -c... to fix
         frontA = front[1] - fronti[1]
         frontB = fronti[0] - front[0]
         frontC = frontA*(fronti[0]) + frontB*(fronti[1])
@@ -409,8 +414,8 @@ class Vehicle(GameRect):
             degrees = self.degrees
         mysin = const.sin(const.radians(degrees))
         mycos = const.cos(const.radians(degrees))
-        height = self.height+5
-        width = self.width+5
+        height = self.height + const.PROPORTION
+        width = self.width + const.PROPORTION
         return (
             [round(position[0] + mysin*height + mycos*width, const.FLOAT_PRECISION),
                 round(position[1] + mysin*width - mycos*height, const.FLOAT_PRECISION)],
@@ -423,12 +428,10 @@ class Vehicle(GameRect):
         )
 
     # The front of the vehicle
-    def calcFrontArea(self):
+    def calcFrontArea(self, view_h = const.DOUBLE_PROPORTION, view_w = const.FIFTEEN_PROPORTION):
         mysin = const.sin(const.radians(self.degrees))
         mycos = const.cos(const.radians(self.degrees))
         points = list(self.calcPoints())
-        view_h = const.DOUBLE_PROPORTION
-        view_w = const.TWELVE_PROPORTION
         points[2] = list(points[1])
         points[3] = list(points[0])
         points[0][0] += mysin*view_h + mycos*view_w
