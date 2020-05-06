@@ -1,5 +1,6 @@
-#import os
+import os
 import sys
+
 #const
 # FILE = 0
 # DB = 1
@@ -24,3 +25,5 @@ def printTxt():
 
 	sys.stdout = orig_stdout
 	f.close()
+
+#class DataCSV():
