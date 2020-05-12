@@ -1,4 +1,9 @@
+import os
+import sys
 from influxdb import InfluxDBClient
+import csv
+
+# Specchietti di visualizzazione casi limite
 
 class DBOutput():
 	def __init__(self):
@@ -29,7 +34,35 @@ class DBOutput():
 	#method used to write the json output into the database
 	def writeOutput(self, data):
 		self.client.write_points(data)
-
+ 
 	#method used to close the connection with the Database
 	def closeConnection(self):
 		self.client.close()
+
+class CSVoutput():
+	def __init__(self):
+		self.file
+		self.DEFAULTPATH = './output/'
+		self.CSV_SEPARATOR = ','
+		self.INCIDENTE = 'incidenti'
+		self.TEMPISTICHE = 'tempistiche'
+		self.DATI_PER_ORA = 'dati_per_ora'
+
+	def createPathAndSave(self):
+		if not os.path.exists(self.DEFAULTPATH):
+			os.makedirs(self.DEFAULTPATH)
+		with open(os.path.join(self.DEFAULTPATH, self.file), 'wb') as temp_file:
+			temp_file.write(buff)
+
+	#cycles at the input datatype and then if
+	def writeCSV(self, datatype):
+		dataLength = len(datatype)
+		with open('data.csv', 'w', newline='') as csvfile:
+			self.file = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+			for i in range(dataLength):
+				if(i == self.INCIDENTE):
+					self.file.writerow()
+				if(i == self.TEMPISTICHE):
+					self.file.writerow()
+				if(i == self.DATI_PER_ORA):
+					self.file.writerow()
