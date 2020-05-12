@@ -2,8 +2,10 @@ import os
 import sys
 from influxdb import InfluxDBClient
 import csv
+from datetime import date
 
 # Specchietti di visualizzazione casi limite
+
 
 class DBOutput():
 	def __init__(self):
@@ -40,29 +42,34 @@ class DBOutput():
 		self.client.close()
 
 class CSVoutput():
-	def __init__(self):
-		self.file
-		self.DEFAULTPATH = './output/'
-		self.CSV_SEPARATOR = ','
-		self.INCIDENTE = 'incidenti'
-		self.TEMPISTICHE = 'tempistiche'
-		self.DATI_PER_ORA = 'dati_per_ora'
+	def __init__(self, DEFAULTPATH = './output/', CSV_SEPARATOR = ',', INCIDENTE = 'incidenti', TEMPISTICHE = 'tempistiche', DATI_PER_ORA = 'dati_per_ora'):
+		self.DEFAULTPATH = DEFAULTPATH
+		self.CSV_SEPARATOR = CSV_SEPARATOR
+		self.INCIDENTE = INCIDENTE
+		self.TEMPISTICHE = TEMPISTICHE
+		self.DATI_PER_ORA = DATI_PER_ORA
 
-	def createPathAndSave(self):
-		if not os.path.exists(self.DEFAULTPATH):
+	#creates or locates path
+	def createPath(self):
+		if os.path.exists(self.DEFAULTPATH) == False:
 			os.makedirs(self.DEFAULTPATH)
-		with open(os.path.join(self.DEFAULTPATH, self.file), 'wb') as temp_file:
-			temp_file.write(buff)
+			print('Created Directory!')
+		if not os.path.exists(self.DEFAULTPATH) == False:
+			print('Directory is already there!')
 
 	#cycles at the input datatype and then if
-	def writeCSV(self, datatype):
-		dataLength = len(datatype)
-		with open('data.csv', 'w', newline='') as csvfile:
-			self.file = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+	def writeCSV(self, dataList):
+		dataLength = len(dataList)
+		with open(self.DEFAULTPATH +'data.csv', 'w', newline='') as csvfile:
+			file = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+			print('creacsv')
 			for i in range(dataLength):
-				if(i == self.INCIDENTE):
-					self.file.writerow()
-				if(i == self.TEMPISTICHE):
-					self.file.writerow()
-				if(i == self.DATI_PER_ORA):
-					self.file.writerow()
+				if(dataList[i] == self.INCIDENTE):
+					print('incidente')
+					file.writerow("data" + self.CSV_SEPARATOR + self.INCIDENTE + self.CSV_SEPARATOR)
+				if(dataList[i] == self.TEMPISTICHE):
+					print('tempistiche')
+					file.writerow("data" +  self.CSV_SEPARATOR + self.TEMPISTICHE + self.CSV_SEPARATOR)
+				if(dataList[i] == self.DATI_PER_ORA):
+					print('datiora')
+					file.writerow("data" +  self.CSV_SEPARATOR + self.DATI_PER_ORA + self.CSV_SEPARATOR)
