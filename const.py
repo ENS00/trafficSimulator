@@ -4,6 +4,7 @@ import pygame
 # for read configuration.ini
 from configparser import ConfigParser
 from os import path
+import output_connections as out_conn
 
 pygame.init()
 CONF_FILE_PATH = r'configuration.ini'
@@ -167,3 +168,7 @@ if 'icon_path' in assetsConfiguration:
     ICON_PATH = assetsConfiguration['icon_path']
 else:
     ICON_PATH = None
+
+#Connection
+WRITE_CSV = out_conn.CSVOutput()            #connection string to the output csv file
+WRITE_DB = out_conn.DBOutput()              #connection string to the output influxdb

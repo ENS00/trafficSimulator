@@ -32,6 +32,7 @@ class Game():
 
         self.continueProcess = True                         # control other process
 
+
     # Inizializes roads and draws crossroad (the crossroad object call for every object it owns the draw method)
     def drawField(self):
         # ROADS
@@ -113,7 +114,6 @@ class Game():
             if not accident:
                 data = {
                         'measurement': 'tempistiche',
-                        'time': self.time.getRealTimestamp(),
                         'tags': {
                                  'vehicle_type': type(obj).__name__,
                                  'spawn_lane': obj.spawnLane,
@@ -124,9 +124,16 @@ class Game():
                                    'total_stop_time': obj.totalTimeStop,
                                    'min_vel': round(obj.minVel),
                                    'max_vel': round(obj.maxVel)
-                                  }
+                                  },
+                        'time': '2020-05-13T16:36:29.147Z',#str(self.time.getRealTimestamp()),
                         }
                 print(data)
+                
+                const.WRITE_DB.dbCheckConn()
+                const.WRITE_DB.chooseDB()
+                const.WRITE_DB.writeOutput(data)
+
+                const.WRITE_CSV.writeCSV(data)
 
     def moveVehicles(self):
         while self.continueProcess and self.count<const.CONFIGURATION_SPEED:
@@ -183,5 +190,6 @@ class Game():
                           }
                 }
         print(data)
+        const.WRITE_CSV.writeCSV(data)
         self.deleteObject(vehicle1)
         self.deleteObject(vehicle2)
