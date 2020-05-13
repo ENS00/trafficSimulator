@@ -9,13 +9,17 @@ pygame.init()
 CONF_FILE_PATH = r'configuration.ini'
 config = ConfigParser()
 # default values without using the file
-config.read_dict({'Window': {'width': 800,
+config.read_dict({
+                  'Window': {
+                             'width': 800,
                              'height': 800,
                              'position_x': 350,
                              'position_y': 100
                             },
-                  'Game': {'speed': 2,
-                           'traffic_light_duration': 60
+                  'Game': {
+                           'speed': 2,
+                           'traffic_light_duration': 60,
+                           'spawn_rate': 2
                           },
                   'Assets': {}
                 })
@@ -30,10 +34,23 @@ assetsConfiguration = dict(config.items('Assets'))
 gameConfiguration['speed'] = int(gameConfiguration['speed'])
 if gameConfiguration['speed'] < 1 or gameConfiguration['speed'] > 3:
     gameConfiguration['speed'] = 2
+gameConfiguration['spawn_rate'] = int(gameConfiguration['spawn_rate'])
+if gameConfiguration['spawn_rate'] < 1 or gameConfiguration['spawn_rate'] > 3:
+    gameConfiguration['spawn_rate'] = 2
+
+if not gameConfiguration['start_time_hours']:
+    gameConfiguration['start_time_hours'] = 0
+else:
+    gameConfiguration['start_time_hours'] = int(gameConfiguration['start_time_hours'])
+if not gameConfiguration['start_time_minutes']:
+    gameConfiguration['start_time_minutes'] = 0
+else:
+    gameConfiguration['start_time_minutes'] = int(gameConfiguration['start_time_minutes'])
 
 CONFIGURATION_SPEED = gameConfiguration['speed']
-TIME_SPEED = 240*(CONFIGURATION_SPEED-1)   # REAL 1s = GAME (240+x)s
+TIME_SPEED = 180*CONFIGURATION_SPEED   # REAL 1s = GAME (240+x)s
 FPS = 300
+START_TIME = gameConfiguration['start_time_hours']*3600 + gameConfiguration['start_time_minutes']*60
 
 # Variables
 FLOAT_PRECISION = 5
@@ -58,7 +75,7 @@ TIMEPANEL_SIZE = max(round(W_WIDTH/22.5),16)
 HALF_CAR_WIDTH = PROPORTION*15/4      # dimension of the car
 HALF_CAR_HEIGHT = PROPORTION*9/4      # dimension of the car
 CAR_WHEELS_POSITION = PROPORTION*2    # distance of wheel from the rear (or the front) of the car
-HALF_BUS_WIDTH = PROPORTION*25/4      # dimension of the bus 
+HALF_BUS_WIDTH = PROPORTION*25/4      # dimension of the bus
 HALF_BUS_HEIGHT = PROPORTION*9/4      # dimension of the bus
 BUS_WHEELS_POSITION = PROPORTION*4    # distance of wheel from the rear (or the front) of the bus
 # TRUCK_WIDTH = PROPORTION*11         # dimension of the truck
@@ -140,6 +157,10 @@ def ROTATE(side, pos, angle):
     _y = (side[0]-pos[0]) * sinTh + (side[1]-pos[1]) * cosTh
     side[0] = _x + pos[0]
     side[1] = _y + pos[1]
+
+# Control spawn
+SPAWN_FREQUENCY = 60*gameConfiguration['spawn_rate']       # every X simulated seconds
+PEAK_TIMES = [10,5,5,5,5,5,30,60,60,30,30,30,70,70,45,45,45,60,60,30,30,30,20,20]
 
 # Images
 if 'icon_path' in assetsConfiguration:

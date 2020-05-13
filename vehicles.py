@@ -17,8 +17,8 @@ class Vehicle(GameRect):
         self.steerDeg = 0
         self.acceleration = 0.5
         self.deceleration = 0
-        self.prev_acceleration = self.acceleration
-        self.prev_deceleration = self.deceleration
+        self.minVel = 1000
+        self.maxVel = 0
 
         self.crossroad = crossroad
         self.spawnLane = lane
@@ -34,9 +34,6 @@ class Vehicle(GameRect):
         self.velocity += self.acceleration/2*self.power/self.weight
         if self.velocity > 0:
             self.velocity -= self.deceleration/2*self.power/self.weight
-        # prev_acceleration prev_deceleration used in predict function
-        self.prev_acceleration = self.acceleration
-        self.prev_deceleration = self.deceleration
         self.acceleration = 0
         self.deceleration = 0
         if self.velocity > 0:
@@ -49,6 +46,10 @@ class Vehicle(GameRect):
                 self.startTimeStop = self.game.currentTimeFromStart
             self.timeStop = self.game.currentTimeFromStart - self.startTimeStop
         else:
+            if self.velocity > self.maxVel:
+                self.maxVel = self.velocity
+            if self.velocity < self.minVel:
+                self.minVel = self.velocity
             if self.startTimeStop and self.velocity>10:
                 self.totalTimeStop += self.timeStop
                 self.startTimeStop = 0
@@ -326,9 +327,7 @@ class Vehicle(GameRect):
                 distance = position.distance(vehicle.position, self.position)
                 if distance<100:
                     if position.getRectCollision(self.points,vehicle.points):
-                        print('Accident between %i and %i' %(self.id,vehicle.id))
-                        self.game.deleteObject(self)
-                        self.game.deleteObject(vehicle)
+                        self.game.registerAccident(self, vehicle)
                         return
                     if position.getRectCollision(points, vehicle.points) and self.timeStop<600 and self.velocity>10:
                         magnitude = self.velocity*4/distance

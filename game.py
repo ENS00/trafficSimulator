@@ -20,24 +20,25 @@ class Game():
         self.timepanel = TimePanel(self, self.time)
         self.vehicleCountPanel = VehicleCountPanel(self)
 
-        self.statusLights = None                        # it memorize the last update of traffic lights
-        self.vehicles = []                              # all active vehicles
-        self.removeObjects = []                         # all vehicles to remove
-        self.autoSpawn = True                           # enable autospawn randomly
-        self.randomSpawn = const.randint(100,300)       # every x time spawn a vehicle
-        self.lastSpawn = 0                              # when the last spawn happened
+        self.currentHour = const.START_TIME//3600%24
+
+        self.statusLights = None                            # it memorize the last update of traffic lights
+        self.vehicles = []                                  # all active vehicles
+        self.removeObjects = []                             # all vehicles to remove
+        self.randomSpawn = self.getRandomSpawnTime()        # get time to wait until next spawn
+        self.lastSpawn = 0                                  # when the last spawn happened
         self.currentTimeFromStart = 0
         self.count=0
 
-        self.continueProcess = True                     # control other process
+        self.continueProcess = True                         # control other process
 
     # Inizializes roads and draws crossroad (the crossroad object call for every object it owns the draw method)
     def drawField(self):
         # ROADS
-        road_north = roads.Road(self, (const.W_WIDTH/2,0), (const.W_WIDTH/2,const.W_HEIGHT/2))
-        road_east = roads.Road(self, (const.W_WIDTH,const.W_HEIGHT/2), (const.W_WIDTH/2,const.W_HEIGHT/2))
-        road_south = roads.Road(self, (const.W_WIDTH/2,const.W_HEIGHT), (const.W_WIDTH/2,const.W_HEIGHT/2))
-        road_west = roads.Road(self, (0,const.W_HEIGHT/2), (const.W_WIDTH/2,const.W_HEIGHT/2))
+        road_north = roads.Road(self, (const.W_WIDTH/2,0), (const.W_WIDTH/2,const.W_HEIGHT/2), name='North')
+        road_east = roads.Road(self, (const.W_WIDTH,const.W_HEIGHT/2), (const.W_WIDTH/2,const.W_HEIGHT/2), name='East')
+        road_south = roads.Road(self, (const.W_WIDTH/2,const.W_HEIGHT), (const.W_WIDTH/2,const.W_HEIGHT/2), name='South')
+        road_west = roads.Road(self, (0,const.W_HEIGHT/2), (const.W_WIDTH/2,const.W_HEIGHT/2), name='West')
 
         # crossroad
         self.crossroad = roads.Crossroad(self, (road_north, road_east, road_south, road_west))
@@ -62,7 +63,15 @@ class Game():
             if event.type == self.graphic_lib.graphic.QUIT:
                 self.continueProcess = False
                 exit()
+
         self.currentTimeFromStart = self.time.getTime()
+
+        # Every simulation hour
+        if self.currentTimeFromStart//3600 %24 != self.currentHour:
+            self.currentHour = self.currentTimeFromStart//3600 %24
+            print(self.currentTimeFromStart)
+            # register hourly report
+
         # print(self.time.getFps())# show FPS on console
 
         # Controls all trafficlights
@@ -90,20 +99,42 @@ class Game():
         self.vehicles.append(newVehicle)
         return newVehicle
 
+    def getRandomSpawnTime(self):
+        time = const.SPAWN_FREQUENCY
+        while const.randint(1,101) > const.PEAK_TIMES[self.currentHour]:
+            time += const.SPAWN_FREQUENCY
+        return time
+
     # Adds an object to the list of objects to be removed
-    def deleteObject(self, obj):
+    def deleteObject(self, obj, accident=False):
         if obj not in self.removeObjects:
             self.removeObjects.append(obj)
             obj.totalTime = self.currentTimeFromStart - obj.spawnTime
-            # TODO: write output?
-    
+            if not accident:
+                data = {
+                        'measurement': 'tempistiche',
+                        'time': self.time.getRealTimestamp(),
+                        'tags': {
+                                 'vehicle_type': type(obj).__name__,
+                                 'spawn_lane': obj.spawnLane,
+                                 'objective_direction': obj.objectiveDirection
+                                },
+                        'fields': {
+                                   'total_time': obj.totalTime,
+                                   'total_stop_time': obj.totalTimeStop,
+                                   'min_vel': round(obj.minVel),
+                                   'max_vel': round(obj.maxVel)
+                                  }
+                        }
+                print(data)
+
     def moveVehicles(self):
         while self.continueProcess and self.count<const.CONFIGURATION_SPEED:
             # Random spawn
             # TODO: use function that looks at peak times
-            if self.autoSpawn and self.currentTimeFromStart > self.lastSpawn+self.randomSpawn:
+            if self.currentTimeFromStart > self.lastSpawn+self.randomSpawn:
                 self.lastSpawn = self.currentTimeFromStart + self.randomSpawn
-                self.randomSpawn = const.randint(300,800)
+                self.randomSpawn = self.getRandomSpawnTime()
                 self.spawnVehicle()
 
             for i in self.vehicles:
@@ -126,3 +157,31 @@ class Game():
                 i.delete()
             self.removeObjects.clear()
             self.count+=1
+
+    def registerAccident(self, vehicle1, vehicle2):
+        print('Accident between %i and %i' %(vehicle1.id, vehicle2.id))
+        data = {
+                'measurement': 'incidenti',
+                'time': self.time.getRealTimestamp(),
+                'tags': {
+                         'vehicle1_type': type(vehicle1).__name__,
+                         'vehicle1_spawn_lane': vehicle1.spawnLane,
+                         'vehicle1_objective_direction': vehicle1.objectiveDirection,
+                         'vehicle2_type': type(vehicle2).__name__,
+                         'vehicle2_spawn_lane': vehicle2.spawnLane,
+                         'vehicle2_objective_direction': vehicle2.objectiveDirection
+                        },
+                'fields': {
+                           'vehicle1_position_x': vehicle1.position[0],
+                           'vehicle1_position_y': vehicle1.position[1],
+                           'vehicle2_position_x': vehicle2.position[0],
+                           'vehicle2_position_y': vehicle2.position[1],
+                           'vehicle1_degrees': round(vehicle1.degrees),
+                           'vehicle2_degrees': round(vehicle2.degrees),
+                           'vehicle1_velocity': round(vehicle1.velocity),
+                           'vehicle2_velocity': round(vehicle2.velocity)
+                          }
+                }
+        print(data)
+        self.deleteObject(vehicle1)
+        self.deleteObject(vehicle2)

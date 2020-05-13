@@ -1,3 +1,6 @@
 Per quanto riguarda il database abbiamo scelto, data la nostra necessità di dover tenere traccia degli eventi durante la simulazione, di InfluxDB.
 Visto che dobbiamo far girare il db in qualche parte abbiamo scelto di creare un container docker per comodità e velocità, in locale.
 Una volta creato il container verrà creata la classe, in python, in grado di aprire la connessione verso Influx.
+
+
+Specchietti di visualizzazione casi limite

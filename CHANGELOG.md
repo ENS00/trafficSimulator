@@ -1,3 +1,21 @@
+# version 1.2.1
+## Added:
+- Spawn rate using peak times (maybe to revise)
+- Defined data to be saved in file/DB
+- First tests for the output
+- User can now personalize in [configuration.ini](configuration.ini):
+  * Start time of simulation
+  * Adjust spawn quantity (increase/decrease cars generated)
+
+---
+
+## Things To Do:
+- [ ] Suitably move methods away from [position.py](./position.py)
+- [ ] Make some tests with different resolutions
+- [x] Create a class to delegate the task of redirecting the output
+
+<br><br><br>
+
 # version 1.2.0
 ## Added:
 - Vehicle that has to turn left, awaits some time and if he can't still turn, he will choose to go straight instead
@@ -6,15 +24,6 @@
 - Now the simulator uses only default font
 - UI classes
 - Little fixes
-
----
-
-## Things To Do:
-- [ ] Suitably move methods away from [position.py](./position.py)
-- [ ] Make some tests with different resolutions
-- [ ] Create a class to delegate the task of redirecting the output
-
-<br><br><br>
 
 # version 1.1.1
 ## Added:

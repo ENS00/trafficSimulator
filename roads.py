@@ -177,13 +177,15 @@ class TrafficLight(RoadObject):
 # It is the union of one or more lanes
 class Road():
     # At the moment, only 2-lane roads with the same direction can be instantiated
-    def __init__(self, game, pstart, pstop, dim=const.ROAD_LINE_THICKNESS, lineW=const.ROAD_LINE_WIDTH, lineS=const.ROAD_LINE_SIZE):
+    def __init__(self, game, pstart, pstop, dim=const.ROAD_LINE_THICKNESS, lineW=const.ROAD_LINE_WIDTH, lineS=const.ROAD_LINE_SIZE, name=''):
         self.pstart = pstart
         self.pstop = pstop
         self.dim = dim
         self.lineW = lineW
         self.lineS = lineS
         direction = getDirection(pstart, pstop)
+
+        self.name = 'Road '+name
 
         self.pEntryStart = list(self.pstart)
         self.pEntryStop = list(self.pstop)
@@ -210,17 +212,23 @@ class Road():
             self.pExitStart[0] += dim/2
             self.pExitStop[0] += dim/2
 
-        self.entry = Lane(game, self.pEntryStart, self.pEntryStop, self.dim, self.lineS, self.lineW, tags=['entry'])
-        self.exit = Lane(game, self.pExitStart, self.pExitStop, self.dim, self.lineS, self.lineW, tags=['exit'])
+        self.entry = Lane(game, self.pEntryStart, self.pEntryStop, self.dim, self.lineS, self.lineW ,name=self.name + ' entry', tags=['entry'])
+        self.exit = Lane(game, self.pExitStart, self.pExitStop, self.dim, self.lineS, self.lineW, name=self.name + ' exit', tags=['exit'])
 
     # Draws every lane
     def draw(self):
         self.entry.draw()
         self.exit.draw()
 
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
 # It's a graphic object and also has some important points
 class Lane(RoadObject):
-    def __init__(self, game, pstart, pstop, dim, lineS, lineW, tLight=None, tags=[]):
+    def __init__(self, game, pstart, pstop, dim, lineS, lineW, tLight=None, name='Road', tags=[]):
         # I need to specify the game, though __init__ could do that job
         self.game = game
 
@@ -235,6 +243,7 @@ class Lane(RoadObject):
         self.borderLines = None
         self.stopLine = None
         self.road_lines = []
+        self.name = name
 
         self.setPosition(pstart, pstop)
 
@@ -460,13 +469,19 @@ class Lane(RoadObject):
                 self.tLight = TrafficLight(self.game,(self.sides[0].bottomright[0]-const.TL_DIST_X, self.sides[0].bottomright[1]+const.TL_DIST_Y),
                                         const.RIGHT, status, on)
             return self.tLight
-        
+
         raise Exception('Please be sure to tell to an "entry" road to create traffic light')
 
     def removeTrafficLight(self):
         self.tags.remove('entry')
         self.tags.append('exit')
         del self.tLight
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
 
 # Graphical object (it's a square) but it contains all the intersection roads and manages them
 class Crossroad(RoadObject):
@@ -496,7 +511,7 @@ class Crossroad(RoadObject):
                 i.setPosition(i.pstart, (i.pstop[0], i.pstop[1] + self.dim))
             else:
                 i.setPosition(i.pstart, (i.pstop[0], i.pstop[1] - self.dim))
-            
+
             i.crossroad = self
             if i.pstop[0] < minpstop[0]:
                 minpstop[0] = i.pstop[0]

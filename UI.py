@@ -1,6 +1,11 @@
 from const import BLACK,TIMEPANEL_SIZE,W_WIDTH,W_HEIGHT
 from objects import GameRect
 
+# Manage all panels
+class UI():
+    def __init__(self):
+        self.panels = 0
+
 class Panel(GameRect):
     def __init__(self, game, size, position):
         super().__init__(game, BLACK, ([position[0], position[1]],
