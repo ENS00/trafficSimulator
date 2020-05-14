@@ -27,5 +27,5 @@ class Gametime():
             timestamp = self.startTime + self.timeFromStart
         return strftime('%H:%M',gmtime(timestamp))#'%H:%M:%S'
 
-    def getRealTimestamp(self):
-        return round(time())
+    def getRealISODateTime(self):
+        return strftime("%Y-%m-%dT%H:%M:%SZ", gmtime(time()))

@@ -1,11 +1,7 @@
-# version 1.2.1
+# version 1.2.2
 ## Added:
-- Spawn rate using peak times (maybe to revise)
-- Defined data to be saved in file/DB
-- First tests for the output
-- User can now personalize in [configuration.ini](configuration.ini):
-  * Start time of simulation
-  * Adjust spawn quantity (increase/decrease cars generated)
+- Handling output exceptions and errors
+- Data collected per hour
 
 ---
 
@@ -15,6 +11,15 @@
 - [x] Create a class to delegate the task of redirecting the output
 
 <br><br><br>
+
+# version 1.2.1
+## Added:
+- Spawn rate using peak times (maybe to revise)
+- Defined data to be saved in file/DB
+- First tests for the output
+- User can now personalize in [configuration.ini](configuration.ini):
+  * Start time of simulation
+  * Adjust spawn quantity (increase/decrease cars generated)
 
 # version 1.2.0
 ## Added:

@@ -19,6 +19,10 @@ class Game():
         self.time = gametime.Gametime(self.graphic_lib, const.TIME_SPEED)
         self.timepanel = TimePanel(self, self.time)
         self.vehicleCountPanel = VehicleCountPanel(self)
+        self.hourlyData = {
+                           'vehicle_count': 0,
+                           'accidents': 0
+                          }
 
         self.currentHour = const.START_TIME//3600%24
 
@@ -28,7 +32,7 @@ class Game():
         self.randomSpawn = self.getRandomSpawnTime()        # get time to wait until next spawn
         self.lastSpawn = 0                                  # when the last spawn happened
         self.currentTimeFromStart = 0
-        self.count=0
+        self.count = 0                                      # used to control 2nd process and time speed
 
         self.continueProcess = True                         # control other process
 
@@ -53,7 +57,7 @@ class Game():
         self.graphic_lib.update()
         self.timepanel.update()
         self.vehicleCountPanel.update()
-        self.count=0
+        self.count = 0
         Thread(target=self.moveVehicles).start()
 
     # The repeated functions on each frame are here
@@ -63,15 +67,35 @@ class Game():
         for event in events:
             if event.type == self.graphic_lib.graphic.QUIT:
                 self.continueProcess = False
+                const.OUTPUT_DEVICE.closeConnection()
                 exit()
 
         self.currentTimeFromStart = self.time.getTime()
 
         # Every simulation hour
         if self.currentTimeFromStart//3600 %24 != self.currentHour:
-            self.currentHour = self.currentTimeFromStart//3600 %24
-            print(self.currentTimeFromStart)
+            lastHour = self.currentTimeFromStart//3600 %24
+            if const.PEAK_TIMES[lastHour] != const.PEAK_TIMES[self.currentHour]:
+                # if hour changes and spawn probability is different we need to recalculate the next spawn
+                self.randomSpawn = self.getRandomSpawnTime() - (self.currentTimeFromStart - self.lastSpawn)
             # register hourly report
+            data = {
+                    'measurement': 'dati_per_ora',
+                    'tags': {
+                             'start_hour': self.currentHour,
+                             'end_hour': lastHour,
+                            },
+                    'fields': {
+                               'generated_cars': self.hourlyData['vehicle_count'],
+                               'accidents': self.hourlyData['accidents']
+                              },
+                    'time': self.time.getRealISODateTime()
+                   }
+            const.OUTPUT_DEVICE.writeData(data)
+            # reset hourly data
+            self.hourlyData['vehicle_count'] = 0
+            self.hourlyData['accidents'] = 0
+            self.currentHour = lastHour
 
         # print(self.time.getFps())# show FPS on console
 
@@ -87,7 +111,7 @@ class Game():
         if not entryL:
             entryL = self.crossroad.randomEntry()
         if not entryL:
-            print('Could not spawn vehicle right now')
+            print('I: Could not spawn vehicle right now')
             return
         if not exitL:
             exitL = self.crossroad.randomExit(entryL)
@@ -98,6 +122,7 @@ class Game():
         # For now we set that all cars do not turn
         newVehicle.setObjective(exitL)#self.crossroad.getOppositeLanes(newVehicle,const.LEFT)[0])#
         self.vehicles.append(newVehicle)
+        self.hourlyData['vehicle_count'] += 1
         return newVehicle
 
     def getRandomSpawnTime(self):
@@ -107,7 +132,7 @@ class Game():
         return time
 
     # Adds an object to the list of objects to be removed
-    def deleteObject(self, obj, accident=False):
+    def deleteObject(self, obj, accident = False):
         if obj not in self.removeObjects:
             self.removeObjects.append(obj)
             obj.totalTime = self.currentTimeFromStart - obj.spawnTime
@@ -125,21 +150,15 @@ class Game():
                                    'min_vel': round(obj.minVel),
                                    'max_vel': round(obj.maxVel)
                                   },
-                        'time': '2020-05-13T16:36:29.147Z',#str(self.time.getRealTimestamp()),
-                        }
-                print(data)
-                
-                const.WRITE_DB.dbCheckConn()
-                const.WRITE_DB.chooseDB()
-                const.WRITE_DB.writeOutput(data)
-
-                const.WRITE_CSV.writeCSV(data)
+                        'time': self.time.getRealISODateTime()
+                       }
+                const.OUTPUT_DEVICE.writeData(data)
 
     def moveVehicles(self):
-        while self.continueProcess and self.count<const.CONFIGURATION_SPEED:
+        while self.continueProcess and self.count < const.CONFIGURATION_SPEED:
             # Random spawn
             # TODO: use function that looks at peak times
-            if self.currentTimeFromStart > self.lastSpawn+self.randomSpawn:
+            if self.currentTimeFromStart > self.lastSpawn + self.randomSpawn:
                 self.lastSpawn = self.currentTimeFromStart + self.randomSpawn
                 self.randomSpawn = self.getRandomSpawnTime()
                 self.spawnVehicle()
@@ -159,17 +178,16 @@ class Game():
                 i.update()
 
             for i in self.removeObjects:
-                # print(i.id,'removed')
                 self.vehicles.remove(i)
                 i.delete()
             self.removeObjects.clear()
-            self.count+=1
+            self.count += 1
 
     def registerAccident(self, vehicle1, vehicle2):
-        print('Accident between %i and %i' %(vehicle1.id, vehicle2.id))
+        print('I: Accident between %i and %i' %(vehicle1.id, vehicle2.id))
+        self.hourlyData['accidents'] += 1
         data = {
                 'measurement': 'incidenti',
-                'time': self.time.getRealTimestamp(),
                 'tags': {
                          'vehicle1_type': type(vehicle1).__name__,
                          'vehicle1_spawn_lane': vehicle1.spawnLane,
@@ -187,9 +205,9 @@ class Game():
                            'vehicle2_degrees': round(vehicle2.degrees),
                            'vehicle1_velocity': round(vehicle1.velocity),
                            'vehicle2_velocity': round(vehicle2.velocity)
-                          }
-                }
-        print(data)
-        const.WRITE_CSV.writeCSV(data)
+                          },
+                'time': self.time.getRealISODateTime()
+               }
+        const.OUTPUT_DEVICE.writeData(data)
         self.deleteObject(vehicle1)
         self.deleteObject(vehicle2)

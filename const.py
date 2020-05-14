@@ -8,7 +8,7 @@ import output_connections as out_conn
 
 pygame.init()
 CONF_FILE_PATH = r'configuration.ini'
-config = ConfigParser()
+config = ConfigParser(allow_no_value=True)
 # default values without using the file
 config.read_dict({
                   'Window': {
@@ -20,15 +20,24 @@ config.read_dict({
                   'Game': {
                            'speed': 2,
                            'traffic_light_duration': 60,
-                           'spawn_rate': 2
+                           'spawn_rate': 2,
+                           'start_time_hours': 0,
+                           'start_time_minutes': 0,
                           },
-                  'Assets': {}
+                  'Assets': {},
+                  'Connection': {
+                                 'db_name': '',
+                                 'db_host': '',
+                                 'db_port': 8086,
+                                 'csv_path': './output/'
+                                }
                 })
 # update values read from the file
 config.read(CONF_FILE_PATH)
 windowConfiguration = dict(config.items('Window'))
 gameConfiguration = dict(config.items('Game'))
 assetsConfiguration = dict(config.items('Assets'))
+connectionConfiguration = dict(config.items('Connection'))
 
 
 # fix wrong values
@@ -39,17 +48,13 @@ gameConfiguration['spawn_rate'] = int(gameConfiguration['spawn_rate'])
 if gameConfiguration['spawn_rate'] < 1 or gameConfiguration['spawn_rate'] > 3:
     gameConfiguration['spawn_rate'] = 2
 
-if not gameConfiguration['start_time_hours']:
-    gameConfiguration['start_time_hours'] = 0
-else:
-    gameConfiguration['start_time_hours'] = int(gameConfiguration['start_time_hours'])
-if not gameConfiguration['start_time_minutes']:
-    gameConfiguration['start_time_minutes'] = 0
-else:
-    gameConfiguration['start_time_minutes'] = int(gameConfiguration['start_time_minutes'])
+gameConfiguration['start_time_hours'] = int(gameConfiguration['start_time_hours'])
+gameConfiguration['start_time_minutes'] = int(gameConfiguration['start_time_minutes'])
+
+connectionConfiguration['db_port'] = int(connectionConfiguration['db_port'])
 
 CONFIGURATION_SPEED = gameConfiguration['speed']
-TIME_SPEED = 180*CONFIGURATION_SPEED   # REAL 1s = GAME (240+x)s
+TIME_SPEED = 150*CONFIGURATION_SPEED   # REAL 1s = GAME (240+x)s
 FPS = 300
 START_TIME = gameConfiguration['start_time_hours']*3600 + gameConfiguration['start_time_minutes']*60
 
@@ -160,7 +165,7 @@ def ROTATE(side, pos, angle):
     side[1] = _y + pos[1]
 
 # Control spawn
-SPAWN_FREQUENCY = 60*gameConfiguration['spawn_rate']       # every X simulated seconds
+SPAWN_FREQUENCY = 50*gameConfiguration['spawn_rate']       # every X simulated seconds
 PEAK_TIMES = [10,5,5,5,5,5,30,60,60,30,30,30,70,70,45,45,45,60,60,30,30,30,20,20]
 
 # Images
@@ -169,6 +174,18 @@ if 'icon_path' in assetsConfiguration:
 else:
     ICON_PATH = None
 
-#Connection
-WRITE_CSV = out_conn.CSVOutput()            #connection string to the output csv file
-WRITE_DB = out_conn.DBOutput()              #connection string to the output influxdb
+# Connection
+OUTPUT_DEVICE = None
+if connectionConfiguration['db_name'] and connectionConfiguration['db_host']:
+    # connection string to the output influxdb
+    OUTPUT_DEVICE = out_conn.DBOutput(connectionConfiguration['db_host'],connectionConfiguration['db_name'],connectionConfiguration['db_port'])
+if (not OUTPUT_DEVICE or not OUTPUT_DEVICE.flagConnection) and connectionConfiguration['csv_path']:
+    del OUTPUT_DEVICE
+    # connection string to the output csv file
+    OUTPUT_DEVICE = out_conn.CSVOutput(connectionConfiguration['csv_path'])
+
+if not OUTPUT_DEVICE or not OUTPUT_DEVICE.flagConnection:
+    print('W: No output specified, data won\'t be saved in this session')
+    del OUTPUT_DEVICE
+    # instantiate null output
+    OUTPUT_DEVICE = out_conn.Output()
