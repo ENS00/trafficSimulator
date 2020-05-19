@@ -1,8 +1,7 @@
 import const
-import objects
-from position import getDirection
+from objects import GameRect, GameCircle
 # It's a graphic object but we can add tags that better describe the object (and also it's generally static)
-class RoadObject(objects.GameRect):
+class RoadObject(GameRect):
     def __init__(self, game, color, points, tags=[]):
         super().__init__(game, color, points)
         self.tags = tags
@@ -23,7 +22,7 @@ class RoadObject(objects.GameRect):
         super().move(x, y)
 
 # Traffic light status indicator
-class Light(objects.GameCircle):
+class Light(GameCircle):
     def __init__(self, game, tLight, position, color_type = const.TL_RED, state_on = False, radius = const.TL_LIGHT_SIZE):
         super().__init__(game, const.TL_COLORS[color_type][state_on], position, radius)
         self.color_type = color_type
@@ -85,6 +84,24 @@ class TrafficLight(RoadObject):
             self.rotate(90)
         elif direction == const.DOWN:
             self.rotate(180)
+        topleft = (min(self.points[0][0],
+                       self.points[1][0],
+                       self.points[2][0],
+                       self.points[3][0]),
+                   min(self.points[0][1],
+                       self.points[1][1],
+                       self.points[2][1],
+                       self.points[3][1]))
+        bottomright = (max(self.points[0][0],
+                           self.points[1][0],
+                           self.points[2][0],
+                           self.points[3][0]),
+                       max(self.points[0][1],
+                           self.points[1][1],
+                           self.points[2][1],
+                           self.points[3][1]))
+        game.graphic_lib.updateAreas.append(game.graphic_lib.graphic.Rect(topleft[0],topleft[1],
+                                            bottomright[0]-topleft[0],bottomright[1]-topleft[1]))
 
     # Move the rect and its lights
     def move(self, x, y):
@@ -144,12 +161,12 @@ class TrafficLight(RoadObject):
     # Change mode to on
     def turnOn(self):
         self.on = True
-        self.updateLights()
+        self.changeState()
 
     # Change mode to off
     def turnOff(self):
         self.on = False
-        self.updateLights()
+        self.changeState()
 
     # It has 12 passes get more info on documentation
     def update(self):
@@ -162,6 +179,8 @@ class TrafficLight(RoadObject):
             elif self.state == const.TL_YELLOW and self.count != 4:
                 self.changeState()
             elif self.state == const.TL_RED and self.count <= 4:
+                self.changeState()
+            elif self.state not in (const.TL_GREEN,const.TL_YELLOW,const.TL_RED):
                 self.changeState()
         else:
             self.changeState()
@@ -183,7 +202,7 @@ class Road():
         self.dim = dim
         self.lineW = lineW
         self.lineS = lineS
-        direction = getDirection(pstart, pstop)
+        direction = const.GETDIRECTION(pstart, pstop)
 
         self.name = 'Road '+name
 
@@ -237,7 +256,7 @@ class Lane(RoadObject):
         self.dim = dim
         self.lineS = lineS
         self.lineW = lineW
-        self.tags = getDirection(pstart, pstop)
+        self.tags = const.GETDIRECTION(pstart, pstop)
         self.tags.extend(tags)
 
         self.borderLines = None
@@ -307,18 +326,18 @@ class Lane(RoadObject):
             if self.borderLines:
                 self.borderLines[0].delete()
                 self.borderLines[1].delete()
-            self.borderLines = (objects.GameRect(self.game, const.WHITE, ((self.points[0][0], self.points[0][1] + borderW),
+            self.borderLines = (GameRect(self.game, const.WHITE, ((self.points[0][0], self.points[0][1] + borderW),
                                                                           (self.points[0][0], self.points[0][1] - borderW),
                                                                           (self.points[1][0], self.points[0][1] - borderW),
                                                                           (self.points[1][0], self.points[0][1] + borderW)
                                                                          )),
-                                objects.GameRect(self.game, const.WHITE, ((self.points[0][0], self.points[2][1] + borderW),
+                                GameRect(self.game, const.WHITE, ((self.points[0][0], self.points[2][1] + borderW),
                                                                           (self.points[0][0], self.points[2][1] - borderW),
                                                                           (self.points[1][0], self.points[2][1] - borderW),
                                                                           (self.points[1][0], self.points[2][1] + borderW)
                                                                          )))
             for posx in road_lines:
-                self.road_lines.append(objects.GameRect(self.game, const.WHITE, ((posx, self.pstart[1] - self.dim/32),
+                self.road_lines.append(GameRect(self.game, const.WHITE, ((posx, self.pstart[1] - self.dim/32),
                                                                                  (posx + self.lineW, self.pstart[1] - self.dim/32),
                                                                                  (posx + self.lineW, self.pstart[1] + self.dim/32),
                                                                                  (posx, self.pstart[1] + self.dim/32)
@@ -327,13 +346,13 @@ class Lane(RoadObject):
                 if self.stopLine:
                     self.stopLine.delete()
                 if self.isA('right'):
-                    self.stopLine = objects.GameRect(self.game, const.WHITE, ((self.points[1][0] - const.STOPLINE_WIDTH, self.points[0][1]),
+                    self.stopLine = GameRect(self.game, const.WHITE, ((self.points[1][0] - const.STOPLINE_WIDTH, self.points[0][1]),
                                                                               (self.points[1][0], self.points[0][1]),
                                                                               (self.points[1][0], self.points[2][1]),
                                                                               (self.points[1][0] - const.STOPLINE_WIDTH, self.points[2][1])
                                                                              ))
                 else:
-                    self.stopLine = objects.GameRect(self.game, const.WHITE, ((self.points[0][0], self.points[1][1]),
+                    self.stopLine = GameRect(self.game, const.WHITE, ((self.points[0][0], self.points[1][1]),
                                                                               (self.points[0][0] + const.STOPLINE_WIDTH, self.points[1][1]),
                                                                               (self.points[0][0] + const.STOPLINE_WIDTH, self.points[3][1]),
                                                                               (self.points[0][0], self.points[3][1])
@@ -349,18 +368,18 @@ class Lane(RoadObject):
             if self.borderLines:
                 self.borderLines[0].delete()
                 self.borderLines[1].delete()
-            self.borderLines = (objects.GameRect(self.game, const.WHITE, ((self.points[1][0] - borderW, self.points[0][1]),
+            self.borderLines = (GameRect(self.game, const.WHITE, ((self.points[1][0] - borderW, self.points[0][1]),
                                                                           (self.points[1][0] + borderW, self.points[0][1]),
                                                                           (self.points[1][0] + borderW, self.points[2][1]),
                                                                           (self.points[1][0] - borderW, self.points[2][1])
                                                                          )),
-                                objects.GameRect(self.game, const.WHITE, ((self.points[0][0] - borderW, self.points[0][1]),
+                                GameRect(self.game, const.WHITE, ((self.points[0][0] - borderW, self.points[0][1]),
                                                                           (self.points[0][0] + borderW, self.points[0][1]),
                                                                           (self.points[0][0] + borderW, self.points[2][1]),
                                                                           (self.points[0][0] - borderW, self.points[2][1])
                                                                          )))
             for posy in road_lines:
-                self.road_lines.append(objects.GameRect(self.game, const.WHITE, ((self.pstart[0] - self.dim/32, posy),
+                self.road_lines.append(GameRect(self.game, const.WHITE, ((self.pstart[0] - self.dim/32, posy),
                                                                                  (self.pstart[0] + self.dim/32, posy),
                                                                                  (self.pstart[0] + self.dim/32, posy + self.lineW),
                                                                                  (self.pstart[0] - self.dim/32, posy + self.lineW)
@@ -369,13 +388,13 @@ class Lane(RoadObject):
                 if self.stopLine:
                     self.stopLine.delete()
                 if self.isA('up'):
-                    self.stopLine = objects.GameRect(self.game, const.WHITE, ((self.points[0][0], self.points[0][1]),
+                    self.stopLine = GameRect(self.game, const.WHITE, ((self.points[0][0], self.points[0][1]),
                                                                               (self.points[1][0], self.points[0][1]),
                                                                               (self.points[1][0], self.points[0][1] + const.STOPLINE_WIDTH),
                                                                               (self.points[0][0], self.points[0][1] + const.STOPLINE_WIDTH)
                                                                              ))
                 else:
-                    self.stopLine = objects.GameRect(self.game, const.WHITE, ((self.points[0][0], self.points[2][1] - const.STOPLINE_WIDTH),
+                    self.stopLine = GameRect(self.game, const.WHITE, ((self.points[0][0], self.points[2][1] - const.STOPLINE_WIDTH),
                                                                               (self.points[1][0], self.points[2][1] - const.STOPLINE_WIDTH),
                                                                               (self.points[1][0], self.points[2][1]),
                                                                               (self.points[0][0], self.points[2][1])
@@ -528,6 +547,10 @@ class Crossroad(RoadObject):
                 i.createTrafficLight(const.TL_GREEN)
         points = ([minpstop[0], minpstop[1]], [maxpstop[0], minpstop[1]],
                   [maxpstop[0], maxpstop[1]], [minpstop[0], maxpstop[1]])
+        game.graphic_lib.updateAreas.append(game.graphic_lib.graphic.Rect(0, minpstop[1]-const.QUADRUPLE_PROPORTION,
+                                                    const.W_WIDTH, (const.ROAD_LINE_THICKNESS+const.QUADRUPLE_PROPORTION)*2))
+        game.graphic_lib.updateAreas.append(game.graphic_lib.graphic.Rect(minpstop[0]-const.QUADRUPLE_PROPORTION, 0,
+                                                    (const.ROAD_LINE_THICKNESS+const.QUADRUPLE_PROPORTION)*2, const.W_HEIGHT))
         super().__init__(game, const.COLOR_ROAD, points)
 
     def draw(self):
@@ -546,41 +569,17 @@ class Crossroad(RoadObject):
             [i.tLight.turnOff() for i in self.entries]
 
    # Gets where the point is (in which specific lane)
-    def getLaneFromPos(self, obj, inflate=True):
-        if hasattr(obj, 'graphic'):
-            for i in self.entries:
-                if obj.graphic.colliderect(i.sides[0]):
-                    return i, 0
-                if obj.graphic.colliderect(i.sides[1]):
-                    return i, 1
-            for i in self.exits:
-                if obj.graphic.colliderect(i.sides[0]):
-                    return i, 0
-                if obj.graphic.colliderect(i.sides[1]):
-                    return i, 1
-        else:
-            if inflate:
-                for i in self.entries:
-                    if i.sides[0].inflate(2,2).collidepoint(obj):
-                        return i, 0
-                    if i.sides[1].inflate(2,2).collidepoint(obj):
-                        return i, 1
-                for i in self.exits:
-                    if i.sides[0].inflate(2,2).collidepoint(obj):
-                        return i, 0
-                    if i.sides[1].inflate(2,2).collidepoint(obj):
-                        return i, 1
-            else:
-                for i in self.entries:
-                    if i.sides[0].collidepoint(obj):
-                        return i, 0
-                    if i.sides[1].collidepoint(obj):
-                        return i, 1
-                for i in self.exits:
-                    if i.sides[0].collidepoint(obj):
-                        return i, 0
-                    if i.sides[1].collidepoint(obj):
-                        return i, 1
+    def getLaneFromPos(self, obj):
+        for i in self.entries:
+            if i.sides[0].inflate(2,2).collidepoint(obj):
+                return i, 0
+            if i.sides[1].inflate(2,2).collidepoint(obj):
+                return i, 1
+        for i in self.exits:
+            if i.sides[0].inflate(2,2).collidepoint(obj):
+                return i, 0
+            if i.sides[1].inflate(2,2).collidepoint(obj):
+                return i, 1
         # this point is not in a lane
         return None, None
 

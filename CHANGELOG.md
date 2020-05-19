@@ -1,16 +1,25 @@
-# version 1.2.2
+# version 1.2.3
 ## Added:
-- Handling output exceptions and errors
-- Data collected per hour
+- Moved methods from [position.py](./position.py) to [const.py](./const.py)
+- Moved class Waypoint from [position.py](./position.py) to [objects.py](./objects.py)
+- Other options are customizable by the user
+- Performance improvements
+- Removed the threading system because it is less performing
+- Many bugs fixed
 
 ---
 
 ## Things To Do:
-- [ ] Suitably move methods away from [position.py](./position.py)
+- [x] Suitably move methods away from [position.py](./position.py)
 - [ ] Make some tests with different resolutions
 - [x] Create a class to delegate the task of redirecting the output
 
 <br><br><br>
+
+# version 1.2.2
+## Added:
+- Handling output exceptions and errors
+- Data collected per hour
 
 # version 1.2.1
 ## Added:
@@ -38,7 +47,7 @@
 ## Added:
 - Vehicle movement is more detailed and precise
 - Vehicle checks to its left before the turn
-- The Collision Prediciton algorithm has been replaced with another more performing calculation
+- The Collision Prediction algorithm has been replaced with another more performing calculation
 - Vehicles can no longer spawn on each other
 - Added option to disable *autospawn* and control whenever spawn a vehicle
 - Window positioning

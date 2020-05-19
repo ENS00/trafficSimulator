@@ -1,15 +1,15 @@
-from time import strftime, gmtime, time
-import const
+from time import gmtime, time, strftime
+from const import START_TIME, FPS
 
 # Manage the current in-game time
 class Gametime():
-    def __init__(self, graphic_lib, ratio, startTime = const.START_TIME, fps = const.FPS):
+    def __init__(self, graphic_lib, ratio, startTime = START_TIME, fps = FPS):
         self.clock = graphic_lib.graphic.time.Clock()
         graphic_lib.clock = self.clock
         self.ratio = ratio
         self.graphic_lib = graphic_lib
         self.fps = fps
-        self.startTime = const.START_TIME
+        self.startTime = startTime
         self.timeFromStart = 0
 
     # Get the current in-game time

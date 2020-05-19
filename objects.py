@@ -1,4 +1,4 @@
-import const
+from const import ROTATE
 
 # ID assigner uniquely identifies an object
 class IDassigner():
@@ -80,10 +80,10 @@ class GameRect(GameObject):
             if self.degrees < 0:
                 self.degrees += 360
 
-            const.ROTATE(self.points[0], center or self.position, angle)
-            const.ROTATE(self.points[1], center or self.position, angle)
-            const.ROTATE(self.points[2], center or self.position, angle)
-            const.ROTATE(self.points[3], center or self.position, angle)
+            ROTATE(self.points[0], center or self.position, angle)
+            ROTATE(self.points[1], center or self.position, angle)
+            ROTATE(self.points[2], center or self.position, angle)
+            ROTATE(self.points[3], center or self.position, angle)
 
 # Basic object with a center and a radius
 class GameCircle(GameObject):
@@ -101,3 +101,19 @@ class GameCircle(GameObject):
     def move(self, x, y):
         self.position[0] = round(x) + self.position[0]
         self.position[1] = round(y) + self.position[1]
+
+# A coordinate with a velocity and check traffic light attributes
+class Waypoint():
+    def __init__(self, x, y, velocity=None, checkTLight=False, checkLeft=False):
+        # Position of waypoint
+        self.position = (x, y)
+        # Target velocity
+        self.velocity = velocity
+        # Is this the point I was waiting for?
+        self.checkTLight = checkTLight
+        # Do I have to check if there are vehicles on my left?
+        self.checkLeft = checkLeft
+
+    # Gets a clone with same properties
+    def clone(self):
+        return Waypoint(self.position[0], self.position[1], self.velocity, self.checkTLight, self.checkLeft)

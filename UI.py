@@ -9,11 +9,13 @@ class UI():
 class Panel(GameRect):
     def __init__(self, game, size, position):
         super().__init__(game, BLACK, ([position[0], position[1]],
-                                       [position[0]+size*2.5, position[1]],
-                                       [position[0]+size*2.5, position[1]+size],
+                                       [position[0]+size*3, position[1]],
+                                       [position[0]+size*3, position[1]+size],
                                        [position[0], position[1]+size]))
         self.value = ''
         self.size = size
+        game.graphic_lib.updateAreas.append(game.graphic_lib.graphic.Rect(self.points[0][0],self.points[0][1],
+                                            self.points[2][0]-self.points[0][0],self.points[2][1]-self.points[0][1]))
 
     # It will be implemented in child class
     def update(self):

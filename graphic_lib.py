@@ -1,15 +1,15 @@
-import const
+from const import BLACK, pygame, W_POS_X, W_POS_Y
 from os import environ
 
 # Main object that interacts with graphic library
 class Graphic():
-    def __init__(self, title, width, height, background_color = const.BLACK, icon_path = None):
+    def __init__(self, title, width, height, background_color = BLACK, icon_path = None):
         # set the window position
-        environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (const.W_POS_X,const.W_POS_Y)
-        
-        const.pygame.init()                                             # Initialize library for current OS
+        environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (W_POS_X,W_POS_Y)
 
-        self.graphic = const.pygame
+        pygame.init()                                                   # Initialize library for current OS
+
+        self.graphic = pygame
         self.graphic.display.set_caption(title)                         # Sets a title for this window
 
         if icon_path:                                                   # Tries to load an icon
@@ -25,14 +25,16 @@ class Graphic():
         self.fonts = {}
         for size in range(8, 90):                                       # Loads all default fonts
             self.fonts[size] = self.graphic.font.Font(None, size)
-        self.screen.fill(background_color)                              # Draws all the background
+        self.screen.fill(background_color)                              # Draws the background
         self.graphic.display.flip()                                     # Updates every pixel of the window
 
+        self.updateAreas = []
+
     # Utility to draw a text on the window
-    def drawText(self, pos, text, size, color = const.BLACK):
+    def drawText(self, pos, text, size, color = BLACK):
         myfont = self.fonts[size]
         text = myfont.render(str(text), 1, color)
         return self.screen.blit(text, pos)
 
     def update(self):
-        self.graphic.display.flip()                                     # update the screen
+        self.graphic.display.update(self.updateAreas)                                     # update the screen
