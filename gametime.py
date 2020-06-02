@@ -15,17 +15,21 @@ class Gametime():
     # Get the current in-game time
     def getTime(self):
         self.clock.tick(self.fps) # necessary for fps
-        self.timeFromStart += self.ratio/self.fps
+        self.timeFromStart += self.ratio/50000*self.getFps()
         return int(self.timeFromStart)
 
     def getFps(self):
-        return self.clock.get_fps()
+        return self.clock.get_fps() or self.fps
 
     # Get a formatted version of current time (from 113 to 01:53)
     def getFormattedTime(self, timestamp = None):
         if not timestamp:
             timestamp = self.startTime + self.timeFromStart
         return strftime('%H:%M',gmtime(timestamp))#'%H:%M:%S'
+
+    # Get a formatted version of time difference (from 113 to 1h53m)
+    def getFormattedTimeDelta(self, timeDelta):
+        return strftime('%H:%M:%S',gmtime(timeDelta))
 
     def getRealISODateTime(self):
         return strftime("%Y-%m-%dT%H:%M:%SZ", gmtime(time()))

@@ -49,7 +49,7 @@ class Vehicle(GameRect):
                 self.maxVel = self.velocity
             if self.velocity < self.minVel:
                 self.minVel = self.velocity
-            if self.startTimeStop and self.velocity>10:
+            if self.startTimeStop and self.velocity>5:
                 self.totalTimeStop += self.timeStop
                 self.startTimeStop = 0
                 self.timeStop = 0
@@ -305,9 +305,9 @@ class Vehicle(GameRect):
                 accelerate = (objective.velocity-self.velocity) / self.velocity/2 / self.power*self.weight
                 self.accelerate(accelerate)
             else:
-                self.accelerate(1)
-        elif distanceFromObjective > const.DOUBLE_PROPORTION and self.velocity<10:
-            self.accelerate(0.5)
+                self.accelerate(0.25)
+        elif distanceFromObjective > const.DOUBLE_PROPORTION and self.velocity<20:
+            self.accelerate(0.4)
 
         elif objective.velocity < self.velocity and distanceFromObjective<100:
             ntimes = distanceFromObjective / self.velocity*2 / const.VEHICLE_RENDER
@@ -319,46 +319,49 @@ class Vehicle(GameRect):
         avoidy = const.sin(desiredDirection)
 
         # check for other vehicles
-        if self.velocity:
-            magnitude = 0
-            points = self.calcFrontArea()
-            # self.game.graphic_lib.graphic.draw.circle(self.game.graphic_lib.screen,const.RED_OFF,(int(points[0][0]),int(points[0][1])),5)
-            # self.game.graphic_lib.graphic.draw.circle(self.game.graphic_lib.screen,const.RED_OFF,(int(points[1][0]),int(points[1][1])),5)
-            # self.game.graphic_lib.graphic.draw.circle(self.game.graphic_lib.screen,const.RED_OFF,(int(points[2][0]),int(points[2][1])),5)
-            # self.game.graphic_lib.graphic.draw.circle(self.game.graphic_lib.screen,const.RED_OFF,(int(points[3][0]),int(points[3][1])),5)
-            # self.game.graphic_lib.graphic.display.update()
-            # collideArea = self.game.graphic_lib.graphic.Rect(points)
-            for vehicle in allvehicles:
-                if vehicle.id == self.id:
-                    continue
-                # if self.crossroad.hasPrecedence(self,vehicle) or (not self.crossroad.hasPrecedence(vehicle, self) and self.id<vehicle.id):
-                #     continue
-                distance = const.DISTANCE(vehicle.position, self.position)
-                if distance<100:
-                    if const.GETRECTCOLLISION(self.points, vehicle.points):
-                        self.game.registerAccident(self, vehicle)
-                        return
-                    if const.GETRECTCOLLISION(points, vehicle.points):
-                        if self.timeStop<600:
-                            magnitude = self.velocity*4/distance
-                            resAngle = const.GETRADIANS(self.position,vehicle.position)
+        magnitude = 0
+        points = self.calcFrontArea()
+        # self.game.graphic_lib.graphic.draw.circle(self.game.graphic_lib.screen,const.RED_OFF,(int(points[0][0]),int(points[0][1])),5)
+        # self.game.graphic_lib.graphic.draw.circle(self.game.graphic_lib.screen,const.RED_OFF,(int(points[1][0]),int(points[1][1])),5)
+        # self.game.graphic_lib.graphic.draw.circle(self.game.graphic_lib.screen,const.RED_OFF,(int(points[2][0]),int(points[2][1])),5)
+        # self.game.graphic_lib.graphic.draw.circle(self.game.graphic_lib.screen,const.RED_OFF,(int(points[3][0]),int(points[3][1])),5)
+        # self.game.graphic_lib.graphic.display.update()
+        # collideArea = self.game.graphic_lib.graphic.Rect(points)
+        for vehicle in allvehicles:
+            if vehicle.id == self.id:
+                continue
+            # if self.crossroad.hasPrecedence(self,vehicle) or (not self.crossroad.hasPrecedence(vehicle, self) and self.id<vehicle.id):
+            #     continue
+            distance = const.DISTANCE(vehicle.position, self.position)
+            if distance<100:
+                if const.GETRECTCOLLISION(self.points, vehicle.points):
+                    self.game.registerAccident(self, vehicle)
+                    return
+                if const.GETRECTCOLLISION(points, vehicle.points):
+                    if self.timeStop<300 and self.velocity>8:
+                        magnitude = (1+self.velocity)*4/distance
+                        resAngle = const.GETRADIANS(self.position,vehicle.position)
+                        avoidx -= const.cos(resAngle) / distance * vehicle.width*2
+                        avoidy -= const.sin(resAngle) / distance * vehicle.height*2
+                    elif self.timeStop>3000:
+                        points = self.calcFrontArea(view_w = const.QUADRUPLE_PROPORTION, view_h = const.HALF_PROPORTION)
+                        if not const.GETRECTCOLLISION(points, vehicle.points):
+                            magnitude = 0
+                            resAngle = const.GETRADIANS(self.position, vehicle.position)
+                            avoidx -= const.cos(resAngle) / distance * vehicle.width*12
+                            avoidy -= const.sin(resAngle) / distance * vehicle.height*12
+                        else:
+                            magnitude = 1
+                    elif self.timeStop>300 or self.velocity<10:
+                        points = self.calcFrontArea(view_w = const.QUADRUPLE_PROPORTION)
+                        if const.GETRECTCOLLISION(points, vehicle.points):
+                            magnitude = (1+self.velocity)*4/distance
+                            resAngle = const.GETRADIANS(self.position, vehicle.position)
                             avoidx -= const.cos(resAngle) / distance * vehicle.width*2
                             avoidy -= const.sin(resAngle) / distance * vehicle.height*2
-                        elif self.timeStop>3000:
-                            magnitude = self.velocity*20/distance
-                            resAngle = const.GETRADIANS(self.position, vehicle.position)
-                            avoidx -= const.cos(resAngle) / distance * vehicle.width*10
-                            avoidy -= const.sin(resAngle) / distance * vehicle.height*10
-                        elif self.timeStop>600 or self.velocity<5:
-                            points = self.calcFrontArea(view_w = const.QUADRUPLE_PROPORTION)
-                            if const.GETRECTCOLLISION(points, vehicle.points):
-                                magnitude = self.velocity*4/distance
-                                resAngle = const.GETRADIANS(self.position, vehicle.position)
-                                avoidx -= const.cos(resAngle) / distance * vehicle.width*2
-                                avoidy -= const.sin(resAngle) / distance * vehicle.height*2
 
-            if magnitude:
-                self.brake(magnitude)
+        if magnitude:
+            self.brake(magnitude)
 
         rad = const.degrees(const.atan2(avoidy,avoidx))
 

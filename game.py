@@ -4,10 +4,7 @@ from objects import IDassigner
 from gametime import Gametime
 from roads import Road, Crossroad
 from vehicles import Bus, Car
-from UI import TimePanel, VehicleCountPanel
-
-
-# import pstats
+from UI import UI, EventHandler
 
 # Everything is created here
 class Game():
@@ -16,10 +13,22 @@ class Game():
         self.graphic_lib = Graphic(const.W_TITLE, const.W_WIDTH, const.W_HEIGHT, const.BACKGROUND_COLOR, const.ICON_PATH)
 
         self.idassigner = IDassigner()
+        self.uiManager = UI(self)
+        self.eventHandler = EventHandler(self, self.uiManager)
 
         self.time = Gametime(self.graphic_lib, const.TIME_SPEED)
-        self.timepanel = TimePanel(self, self.time)
-        self.vehicleCountPanel = VehicleCountPanel(self)
+        self.vehicles = []      # all active vehicles
+        self.selectedVehicle = None
+
+        # UI panels
+        self.timePanel = self.uiManager.createPanel(self.time.getFormattedTime, const.MEDIUM)
+        if const.SHOW_FPS:
+            self.fpsPanel = self.uiManager.createPanel(lambda: 'FPS: ' + str(round(self.time.getFps(),2)), const.SMALL)
+        self.vehicleCountPanel = self.uiManager.createPanel(lambda: 'Vehicle count: ' + str(len(self.vehicles)), const.SMALL)
+        self.editStatsButton = self.uiManager.createPanel(lambda: '--Edit stats--', const.SMALL, True, lambda self: self.game.statsPanel.changeVisibility())
+        self.statsPanel = self.uiManager.createPanel(lambda: 'All stats', const.SMALL, False)
+        self.vehicleDetailsPanel = self.uiManager.createPanel(lambda: self.selectedVehicleDetails(), const.SMALL, False, lambda self: self.changeVisibility(), const.RIGHT)
+
         self.hourlyData = {
                            'vehicle_count': 0,
                            'accidents': 0
@@ -28,12 +37,11 @@ class Game():
         self.currentHour = const.START_TIME//3600%24
 
         self.statusLights = None                            # it memorize the last update of traffic lights
-        self.vehicles = []                                  # all active vehicles
         self.removeObjects = []                             # all vehicles to remove
         self.randomSpawn = self.getRandomSpawnTime()        # get time to wait until next spawn
         self.lastSpawn = 0                                  # when the last spawn happened
         self.currentTimeFromStart = self.time.getTime()
-        self.count = 0                                      # used to control time speed
+        self.count = self.time.getFps()/100                 # used to control framerate and vehicle movement
 
 
     # Inizializes roads and draws crossroad (the crossroad object call for every object it owns the draw method)
@@ -58,22 +66,12 @@ class Game():
         [o.draw() for o in self.idassigner.objects]
 
         self.graphic_lib.update()
-        self.timepanel.update()
-        self.vehicleCountPanel.update()
+        self.uiManager.updatePanels()
 
     # The repeated functions on each frame are here
     def loop(self):
-        # Ignores input (just for now! We can only quit)
-        events = self.graphic_lib.graphic.event.get()
-        for event in events:
-            if event.type == self.graphic_lib.graphic.QUIT:
-                self.continueProcess = False
-                const.OUTPUT_DEVICE.closeConnection()
-                # self.profile.disable()
-                # ps = pstats.Stats(self.profile)
-                # ps.sort_stats('tottime', 'cumtime')
-                # ps.print_stats()
-                exit()
+        # Handle all user input events
+        self.eventHandler.handleEvents(self.graphic_lib.graphic.event.get())
 
         self.currentTimeFromStart = self.time.getTime()
 
@@ -117,17 +115,17 @@ class Game():
         # Necessary to upload object states
         self.updateField()
         self.moveVehicles()
-        self.count = 0
+        self.count += self.time.getFps()/100
 
     def spawnVehicle(self, entryL = None, exitL = None):
         if not entryL:
             entryL = self.crossroad.randomEntry()
         if not entryL:
-            print('I: Could not spawn vehicle right now')
+            #print('I: Could not spawn vehicle right now')
             return
         if not exitL:
             exitL = self.crossroad.randomExit(entryL)
-        if(const.randint(0,7) > 5):
+        if const.randint(0,101) > const.SPAWN_TYPE:
             newVehicle = Bus(self, self.crossroad, entryL)
         else:
             newVehicle = Car(self, self.crossroad, entryL)
@@ -136,6 +134,11 @@ class Game():
         self.vehicles.append(newVehicle)
         self.hourlyData['vehicle_count'] += 1
         return newVehicle
+
+    def selectedVehicleDetails(self):
+        if not self.selectedVehicle:
+            return 'Vehicle details:\n\n  Type:\n  Velocity:\n'
+        return 'Vehicle details:\n\n  Type: %s\n  Velocity: %s\n'%(type(self.selectedVehicle).__name__, self.selectedVehicle.velocity)
 
     def getRandomSpawnTime(self):
         time = const.SPAWN_FREQUENCY
@@ -157,31 +160,21 @@ class Game():
                                  'objective_direction': obj.objectiveDirection
                                 },
                         'fields': {
-                                   'total_time': obj.totalTime,
-                                   'total_stop_time': obj.totalTimeStop,
-                                   'min_vel': round(obj.minVel),
-                                   'max_vel': round(obj.maxVel)
+                                   'total_time': self.time.getFormattedTimeDelta(obj.totalTime),
+                                   'total_stop_time': self.time.getFormattedTimeDelta(obj.totalTimeStop),
+                                   'min_vel(km/h)': round(obj.minVel),
+                                   'max_vel(km/h)': round(obj.maxVel)
                                   },
                         'time': self.time.getRealISODateTime()
                        }
                 const.OUTPUT_DEVICE.writeData(data)
 
     def moveVehicles(self):
-        while self.count<const.CONFIGURATION_SPEED:
+        while self.count>0:
             # Random spawn
-            # TODO: use function that looks at peak times
             if self.currentTimeFromStart > self.lastSpawn + self.randomSpawn:
-                self.lastSpawn = self.currentTimeFromStart + self.randomSpawn
+                self.lastSpawn = self.currentTimeFromStart
                 self.randomSpawn = self.getRandomSpawnTime()
-                # r = const.randint(0,4)
-                # if r==0:
-                #     self.spawnVehicle(self.crossroad.entries[0],self.crossroad.exits[2])
-                # elif r==1:
-                #     self.spawnVehicle(self.crossroad.entries[2],self.crossroad.exits[0])
-                # elif r==2:
-                #     self.spawnVehicle(self.crossroad.entries[0],self.crossroad.exits[3])
-                # else:
-                #     self.spawnVehicle(self.crossroad.entries[2],self.crossroad.exits[1])
                 self.spawnVehicle()
 
             for i in self.vehicles:
@@ -203,7 +196,7 @@ class Game():
                 self.vehicles.remove(i)
                 i.delete()
             self.removeObjects.clear()
-            self.count += 1
+            self.count -= 1
 
     def registerAccident(self, vehicle1, vehicle2):
         print('I: Accident between %i and %i' %(vehicle1.id, vehicle2.id))
@@ -224,8 +217,8 @@ class Game():
                            'vehicle2_position_y': vehicle2.position[1],
                            'vehicle1_degrees': round(vehicle1.degrees),
                            'vehicle2_degrees': round(vehicle2.degrees),
-                           'vehicle1_velocity': round(vehicle1.velocity),
-                           'vehicle2_velocity': round(vehicle2.velocity)
+                           'vehicle1_velocity(km/h)': round(vehicle1.velocity),
+                           'vehicle2_velocity(km/h)': round(vehicle2.velocity)
                           },
                 'time': self.time.getRealISODateTime()
                }

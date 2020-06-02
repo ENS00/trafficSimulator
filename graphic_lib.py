@@ -33,8 +33,13 @@ class Graphic():
     # Utility to draw a text on the window
     def drawText(self, pos, text, size, color = BLACK):
         myfont = self.fonts[size]
-        text = myfont.render(str(text), 1, color)
-        return self.screen.blit(text, pos)
+        text = str(text).splitlines()
+        for line in text:
+            myline = myfont.render(line, 1, color)
+            self.screen.blit(myline, pos)
+            w,h = myfont.size(line)
+            pos[1] += h
 
+    # update all areas on screen
     def update(self):
-        self.graphic.display.update(self.updateAreas)                                     # update the screen
+        self.graphic.display.update(self.updateAreas)

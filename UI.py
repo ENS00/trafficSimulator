@@ -1,53 +1,98 @@
-from const import BLACK,TIMEPANEL_SIZE,W_WIDTH,W_HEIGHT
+import const
 from objects import GameRect
 
 # Manage all panels
 class UI():
-    def __init__(self):
-        self.panels = 0
+    def __init__(self, game):
+        self.game = game
+        self.panels = []
+        self.freePositionLeft = [const.W_WIDTH/30, const.W_HEIGHT/50]
+        self.freePositionRight = [const.W_WIDTH*2/3, const.W_HEIGHT/50]
+
+    def createPanel(self, updateFunction = lambda: '', size = const.MEDIUM, show = True, clickFunction = lambda self: None, align = const.LEFT):
+        if align == const.LEFT:
+            newPanel = Panel(self.game, size, self.freePositionLeft, updateFunction, clickFunction, show, align)
+            self.freePositionLeft[1] += size
+            self.panels.append(newPanel)
+            return newPanel
+        newPanel = Panel(self.game, size, self.freePositionRight, updateFunction, clickFunction, show, align)
+        self.freePositionRight[1] += size
+        self.panels.append(newPanel)
+        return newPanel
+
+    def updatePanels(self):
+        [panel.update() for panel in self.panels]
+
+    # handle click events on panels
+    def handlePanelsClick(self, pos):
+        for panel in self.panels:
+            if panel.area.collidepoint(pos):
+                panel.click()
+                return True
+        return False
 
 class Panel(GameRect):
-    def __init__(self, game, size, position):
-        super().__init__(game, BLACK, ([position[0], position[1]],
-                                       [position[0]+size*3, position[1]],
-                                       [position[0]+size*3, position[1]+size],
-                                       [position[0], position[1]+size]))
-        self.value = ''
+    def __init__(self, game, size, position, updateFunction, clickFunction, show, align):
+        self.value = updateFunction()
+        width, height = game.graphic_lib.fonts[size].size(self.value)
+        height *= self.value.count('\n')+1
+        super().__init__(game, const.BACKGROUND_COLOR, ([position[0], position[1]],
+                                                        [position[0] + width + const.QUADRUPLE_PROPORTION, position[1]],
+                                                        [position[0] + width + const.QUADRUPLE_PROPORTION, position[1] + height],
+                                                        [position[0], position[1]+height]))
+        self.updateFunction = updateFunction
+        self.clickFunction = clickFunction
         self.size = size
-        game.graphic_lib.updateAreas.append(game.graphic_lib.graphic.Rect(self.points[0][0],self.points[0][1],
-                                            self.points[2][0]-self.points[0][0],self.points[2][1]-self.points[0][1]))
+        self.area = game.graphic_lib.graphic.Rect(self.points[0][0],
+                                                  self.points[0][1],
+                                                  self.points[2][0] - self.points[0][0],
+                                                  self.points[2][1] - self.points[0][1])
+        game.graphic_lib.updateAreas.append(self.area)
+        self.hidden = not show
 
-    # It will be implemented in child class
     def update(self):
-        pass
+        self.value = self.updateFunction()
+        self.draw()
 
     # Draws the panel on screen
     def draw(self):
         if not self.graphic:
             self.graphic = self.graphic_lib.graphic.draw.polygon(self.graphic_lib.screen, self.color, self.points)
             self.position = self.graphic.topleft
-        self.graphic = self.graphic_lib.drawText(self.position, self.value, self.size)
+        if not self.hidden:
+            self.graphic = self.graphic_lib.drawText(list(self.position), self.value, self.size)
 
-# Shows graphically the current in-game time (HH:MM)
-class TimePanel(Panel):
-    def __init__(self, game, gametime, size = TIMEPANEL_SIZE, position = (W_WIDTH/30,W_HEIGHT/50)):
-        super().__init__(game, size, position)
-        self.gametime = gametime
-        self.value = '00:00'
-        self.size = size
+    def changeVisibility(self):
+        self.hidden = not self.hidden
 
-    # Updates the clock and draws it
-    def update(self):
-        self.value = self.gametime.getFormattedTime()
-        self.draw()
+    def click(self):
+        if not self.hidden:
+            self.clickFunction(self)
 
-class VehicleCountPanel(Panel):
-    def __init__(self, game, size = int(TIMEPANEL_SIZE/2), position = (W_WIDTH/30,W_HEIGHT/20)):
-        super().__init__(game, size, position)
-        self.value = 'Vehicle count: 0'
-        self.size = size
+# control all input events from the user
+class EventHandler():
+    def __init__(self, game, ui):
+        self.game = game
+        self.ui = ui
+        self.graphic = game.graphic_lib.graphic
 
-    # Updates the panel and draws it
-    def update(self):
-        self.value = 'Vehicle count: ' + str(len(self.game.vehicles))
-        self.draw()
+    # this method needs an object obtained by self.graphic_lib.graphic.event.get()
+    # all pygame events are managed here
+    def handleEvents(self, events):
+        for event in events:
+            # left click on the screen
+            if event.type == self.graphic.MOUSEBUTTONUP and event.button == 1:
+                if self.ui.handlePanelsClick(event.pos):
+                    break
+                # check if the target is a vehicle
+                for vehicle in self.game.vehicles:
+                    if const.GETCOLLISION(event.pos, vehicle.calcPoints()):
+                        self.game.selectedVehicle = vehicle
+                        self.game.vehicleDetailsPanel.hidden = False
+                        break
+
+            # quit simulation
+            if event.type == self.graphic.QUIT:
+                self.continueProcess = False
+                const.OUTPUT_DEVICE.closeConnection()
+                exit()

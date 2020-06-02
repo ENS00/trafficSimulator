@@ -21,6 +21,7 @@ config.read_dict({
                            'speed': 2,
                            'traffic_light_duration': 60,
                            'spawn_rate': 2,
+                           'spawn_type': 70,
                            'start_time_hours': 0,
                            'start_time_minutes': 0,
                            'poweroff_tl': False,
@@ -54,6 +55,11 @@ if gameConfiguration['speed'] < 1 or gameConfiguration['speed'] > 3:
 gameConfiguration['spawn_rate'] = int(gameConfiguration['spawn_rate'])
 if gameConfiguration['spawn_rate'] < 1 or gameConfiguration['spawn_rate'] > 3:
     gameConfiguration['spawn_rate'] = 2
+gameConfiguration['spawn_type'] = int(gameConfiguration['spawn_type'])
+if gameConfiguration['spawn_type'] < 0:
+    gameConfiguration['spawn_type'] = 0
+if gameConfiguration['spawn_type'] > 100:
+    gameConfiguration['spawn_type'] = 100
 
 gameConfiguration['start_time_hours'] = int(gameConfiguration['start_time_hours'])
 gameConfiguration['start_time_minutes'] = int(gameConfiguration['start_time_minutes'])
@@ -79,11 +85,17 @@ styleConfiguration['background_color'] = [int(i) for i in styleConfiguration['ba
 
 CONFIGURATION_SPEED = gameConfiguration['speed']
 TIME_SPEED = 150*CONFIGURATION_SPEED   # REAL 1s = GAME (240+x)s
-FPS = 300
+FPS = 150                              # limit FPS
 START_TIME = gameConfiguration['start_time_hours']*3600 + gameConfiguration['start_time_minutes']*60
 
 # Variables
 FLOAT_PRECISION = 5
+SHOW_FPS = False
+# Control spawn
+SPAWN_FREQUENCY = 140-20*gameConfiguration['spawn_rate']       # every X simulated seconds
+PEAK_TIMES = [10,5,5,5,5,10,30,60,60,30,30,30,70,70,45,45,45,60,60,30,30,30,20,20]
+# PEAK_TIMES = [80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80]
+SPAWN_TYPE = gameConfiguration['spawn_type']
 
 # window position
 W_POS_X = int(windowConfiguration['position_x'])
@@ -94,6 +106,7 @@ W_WIDTH = int(windowConfiguration['width'])
 W_HEIGHT = int(windowConfiguration['height'])
 W_TITLE = 'Traffico'
 PROPORTION = round(sqrt(W_WIDTH*W_HEIGHT)/200,FLOAT_PRECISION)   # proportion used for other calcs
+HALF_PROPORTION = PROPORTION/2
 DOUBLE_PROPORTION = PROPORTION*2
 QUADRUPLE_PROPORTION = PROPORTION*4
 OCTUPLE_PROPORTION = PROPORTION*8
@@ -102,16 +115,12 @@ FIFTEEN_PROPORTION = PROPORTION*15
 TWENTYTWO_PROPORTION = PROPORTION*22
 THIRTY_PROPORTION = PROPORTION*30
 TIMEPANEL_SIZE = max(round(W_WIDTH/24),16)
-HALF_CAR_WIDTH = PROPORTION*15/4      # dimension of the car
-HALF_CAR_HEIGHT = PROPORTION*9/4      # dimension of the car
-CAR_WHEELS_POSITION = PROPORTION*2    # distance of wheel from the rear (or the front) of the car
-HALF_BUS_WIDTH = PROPORTION*25/4      # dimension of the bus
-HALF_BUS_HEIGHT = PROPORTION*9/4      # dimension of the bus
-BUS_WHEELS_POSITION = PROPORTION*4    # distance of wheel from the rear (or the front) of the bus
-# TRUCK_WIDTH = PROPORTION*11         # dimension of the truck
-# TRUCK_HEIGHT = PROPORTION*13        # dimension of the truck
-# TRAILER_WIDTH = PROPORTION*20       # dimension of the trailer of the truck
-# TRAILER_HEIGHT = PROPORTION*11      # dimension of the trailer of the truck
+HALF_CAR_WIDTH = PROPORTION*15/4        # dimension of the car
+HALF_CAR_HEIGHT = PROPORTION*9/4        # dimension of the car
+CAR_WHEELS_POSITION = DOUBLE_PROPORTION # distance of wheel from the rear (or the front) of the car
+HALF_BUS_WIDTH = PROPORTION*25/4        # dimension of the bus
+HALF_BUS_HEIGHT = PROPORTION*9/4        # dimension of the bus
+BUS_WHEELS_POSITION = PROPORTION*4      # distance of wheel from the rear (or the front) of the bus
 
 ROAD_LINE_WIDTH = int(PROPORTION*11/2)  # width of the white line
 ROAD_LINE_SIZE = int(DOUBLE_PROPORTION) # size of the white line
@@ -120,7 +129,7 @@ STOPLINE_WIDTH = ROAD_LINE_SIZE + 2
 VEHICLE_RENDER = PROPORTION/800
 VEHICLE_SPAWN_SPEED = 30
 VEHICLE_FRICTION = 0.0004    # friction constant combined with car acceleration we get the maximum velocity of a vehicle
-CAR_ACCELERATION = 10        # this number permits to have a maximum velocity of 90
+CAR_ACCELERATION = 11        # this number permits to have a maximum velocity of 90
 CAR_WEIGHT = 50
 BUS_WEIGHT = 56
 
@@ -161,13 +170,15 @@ ORANGE = pygame.Color(255,160,0)
 LIGHT_GREEN = pygame.Color(160,255,0)
 WHITE_SMOKE = pygame.Color(245,245,245)
 TRANSPARENT = pygame.Color(0,0,0,0)
-RANDOM_COLOR_LIST = (ORANGE,YELLOW_ON,BLACK,WHITE_SMOKE,GRAY,BLUE,RED_ON,LIGHT_GREEN)
-RANDOM_COLOR = lambda: RANDOM_COLOR_LIST[int(gauss(len(RANDOM_COLOR_LIST)/2, len(RANDOM_COLOR_LIST)/8))]
 TL_COLORS = {
     TL_RED: (RED_OFF,RED_ON),
     TL_YELLOW: (YELLOW_OFF,YELLOW_ON),
     TL_GREEN: (GREEN_OFF,GREEN_ON),
 }
+
+# UI panels
+SMALL = int(TIMEPANEL_SIZE/2)
+MEDIUM = int(TIMEPANEL_SIZE)
 
 # Orientation
 HORIZONTAL = 0
@@ -181,7 +192,17 @@ FORWARD = 1
 
 
 
+
 # Functions
+RANDOM_COLOR_LIST = (ORANGE,YELLOW_ON,BLACK,WHITE_SMOKE,GRAY,BLUE,RED_ON,LIGHT_GREEN)
+def RANDOM_COLOR():
+    random = round(gauss(len(RANDOM_COLOR_LIST)/2, len(RANDOM_COLOR_LIST)/6))
+    if random < 0:
+        random = 0
+    if random >= len(RANDOM_COLOR_LIST):
+        random = len(RANDOM_COLOR_LIST)-1
+    return RANDOM_COLOR_LIST[random]
+
 def ROTATE(side, pos, angle):
     rad = radians(angle)
     cosTh = cos(rad)
@@ -224,30 +245,6 @@ def DISTANCE(p1, p2):
 # Calculate angle of inclination in radians of 2 points [x,y]
 def GETRADIANS(p1, p2):
     return atan2(p2[1] - p1[1], p2[0] - p1[0])
-
-# Pos1 and pos2 define the line, it calculate the projection of the point [x,y] on the straight line
-# def PROJECTION(point, pos1, pos2):
-#     # Find a point in a line that is the nearest to another point
-#     # That point is the projection of the point in the line
-#
-#     # Find line from 2 points
-#     if pos2[0] - pos1[0]:
-#         # y = mx + q
-#         m = (pos2[1] - pos1[1]) / (pos2[0] - pos1[0])
-#         q = pos1[1] - pos1[0]*m
-#         # Perpendicular
-#         if m:
-#             # y = mx + q
-#             m2 = -1/m
-#             q2 = point[1] - point[0]*m2
-#             # Solution
-#             valx = (q2-q)/(m-m2)
-#             valy = m*valx + q
-#             return [valx, valy]
-#         # y = c
-#         return [point[0], pos1[1]]
-#     # x = c
-#     return [pos1[0], point[1]]
 
 # Is the projection of a point on a line A:B between points A and B?
 def BETWEENPROJECTION(point, pos1, pos2):
@@ -295,11 +292,6 @@ def GETRECTCOLLISION(points1, points2):
     case7 = BETWEENPROJECTION(p22, p10, p11) and BETWEENPROJECTION(p22, p11, p12)
     case8 = BETWEENPROJECTION(p23, p10, p11) and BETWEENPROJECTION(p23, p11, p12)
     return case1 or case2 or case3 or case4 or case5 or case6 or case7 or case8
-
-# Control spawn
-SPAWN_FREQUENCY = 50*gameConfiguration['spawn_rate']       # every X simulated seconds
-PEAK_TIMES = [10,5,5,5,5,5,30,60,60,30,30,30,70,70,45,45,45,60,60,30,30,30,20,20]
-# PEAK_TIMES = [80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80]
 
 
 # Images
