@@ -8,7 +8,7 @@ class Gametime():
         graphic_lib.clock = self.clock
         self.ratio = ratio
         self.graphic_lib = graphic_lib
-        self.fps = fps
+        self.fps = float(fps)
         self.startTime = startTime
         self.timeFromStart = 0
 
@@ -26,6 +26,18 @@ class Gametime():
         if not timestamp:
             timestamp = self.startTime + self.timeFromStart
         return strftime('%H:%M',gmtime(timestamp))#'%H:%M:%S'
+
+    # Get a formatted version of current time (from 113 to 01:53)
+    def getHours(self, timestamp = None):
+        if not timestamp:
+            timestamp = self.startTime + self.timeFromStart
+        return int(strftime('%H',gmtime(timestamp)))
+
+    # Get a formatted version of current time (from 113 to 01:53)
+    def getMinutes(self, timestamp = None):
+        if not timestamp:
+            timestamp = self.startTime + self.timeFromStart
+        return int(strftime('%M',gmtime(timestamp)))
 
     # Get a formatted version of time difference (from 113 to 1h53m)
     def getFormattedTimeDelta(self, timeDelta):

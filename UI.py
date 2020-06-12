@@ -8,6 +8,7 @@ class UI():
         self.panels = []
         self.freePositionLeft = [const.W_WIDTH/30, const.W_HEIGHT/50]
         self.freePositionRight = [const.W_WIDTH*2/3, const.W_HEIGHT/50]
+        self.padding = const.PROPORTION
 
     def createPanel(self, updateFunction = lambda: '', size = const.MEDIUM, show = True, clickFunction = lambda self: None, align = const.LEFT):
         if align == const.LEFT:
@@ -34,19 +35,28 @@ class UI():
 class Panel(GameRect):
     def __init__(self, game, size, position, updateFunction, clickFunction, show, align):
         self.value = updateFunction()
-        width, height = game.graphic_lib.fonts[size].size(self.value)
+        padding = game.uiManager.padding
+
+        lines = self.value.splitlines()
+        width = 0
+        for line in lines:
+            mywidth, height = game.graphic_lib.fonts[size].size(line)
+            if width<mywidth:
+                width = mywidth
         height *= self.value.count('\n')+1
-        super().__init__(game, const.BACKGROUND_COLOR, ([position[0], position[1]],
-                                                        [position[0] + width + const.QUADRUPLE_PROPORTION, position[1]],
-                                                        [position[0] + width + const.QUADRUPLE_PROPORTION, position[1] + height],
-                                                        [position[0], position[1]+height]))
+        super().__init__(game, const.BACKGROUND_PANEL, ([position[0] - padding, position[1] - padding],
+                                                        [position[0] + padding + width, position[1] - padding],
+                                                        [position[0] + padding + width, position[1] + padding + height],
+                                                        [position[0] - padding, position[1] + padding + height]))
+
         self.updateFunction = updateFunction
         self.clickFunction = clickFunction
         self.size = size
         self.area = game.graphic_lib.graphic.Rect(self.points[0][0],
                                                   self.points[0][1],
-                                                  self.points[2][0] - self.points[0][0],
+                                                  self.points[2][0],
                                                   self.points[2][1] - self.points[0][1])
+        self.textPos = (self.points[0][0] + padding, self.points[0][1] + padding)
         game.graphic_lib.updateAreas.append(self.area)
         self.hidden = not show
 
@@ -60,7 +70,7 @@ class Panel(GameRect):
             self.graphic = self.graphic_lib.graphic.draw.polygon(self.graphic_lib.screen, self.color, self.points)
             self.position = self.graphic.topleft
         if not self.hidden:
-            self.graphic = self.graphic_lib.drawText(list(self.position), self.value, self.size)
+            self.graphic = self.graphic_lib.drawText(self.textPos, self.value, self.size)
 
     def changeVisibility(self):
         self.hidden = not self.hidden

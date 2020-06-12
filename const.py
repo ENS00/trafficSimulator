@@ -90,7 +90,7 @@ START_TIME = gameConfiguration['start_time_hours']*3600 + gameConfiguration['sta
 
 # Variables
 FLOAT_PRECISION = 5
-SHOW_FPS = False
+SHOW_FPS = True
 # Control spawn
 SPAWN_FREQUENCY = 140-20*gameConfiguration['spawn_rate']       # every X simulated seconds
 PEAK_TIMES = [10,5,5,5,5,10,30,60,60,30,30,30,70,70,45,45,45,60,60,30,30,30,20,20]
@@ -153,7 +153,6 @@ TL_RED = 0
 TL_DURATION = int(gameConfiguration['traffic_light_duration'])*10
 
 # Colors
-BACKGROUND_COLOR = pygame.Color(*styleConfiguration['background_color'])
 COLOR_ROAD = pygame.Color(128,128,128)
 WHITE = pygame.Color(255,255,255)
 GREEN_ON = pygame.Color(0,255,0)
@@ -166,15 +165,19 @@ BLUE = pygame.Color(0,0,160)
 BLACK = pygame.Color(0,0,0)
 GRAY = pygame.Color(80,80,80)
 DARK_GRAY = pygame.Color(64,64,64)
+LIGHT_GRAY = pygame.Color(220,220,220)
 ORANGE = pygame.Color(255,160,0)
 LIGHT_GREEN = pygame.Color(160,255,0)
 WHITE_SMOKE = pygame.Color(245,245,245)
 TRANSPARENT = pygame.Color(0,0,0,0)
+
 TL_COLORS = {
     TL_RED: (RED_OFF,RED_ON),
     TL_YELLOW: (YELLOW_OFF,YELLOW_ON),
     TL_GREEN: (GREEN_OFF,GREEN_ON),
 }
+BACKGROUND_COLOR = pygame.Color(*styleConfiguration['background_color'])
+BACKGROUND_PANEL = LIGHT_GRAY
 
 # UI panels
 SMALL = int(TIMEPANEL_SIZE/2)

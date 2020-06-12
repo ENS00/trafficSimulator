@@ -23,10 +23,10 @@ class Game():
         # UI panels
         self.timePanel = self.uiManager.createPanel(self.time.getFormattedTime, const.MEDIUM)
         if const.SHOW_FPS:
-            self.fpsPanel = self.uiManager.createPanel(lambda: 'FPS: ' + str(round(self.time.getFps(),2)), const.SMALL)
+            self.fpsPanel = self.uiManager.createPanel(lambda: 'FPS: ' + str(round(self.time.getFps(),1)), const.SMALL)
         self.vehicleCountPanel = self.uiManager.createPanel(lambda: 'Vehicle count: ' + str(len(self.vehicles)), const.SMALL)
         self.editStatsButton = self.uiManager.createPanel(lambda: '--Edit stats--', const.SMALL, True, lambda self: self.game.statsPanel.changeVisibility())
-        self.statsPanel = self.uiManager.createPanel(lambda: 'All stats', const.SMALL, False)
+        self.statsPanel = self.uiManager.createPanel(lambda: 'Driver Behaviour:\n- drunkness     - *v* +\n- tiredness     - *v* +\n- elderness     [False]', const.SMALL, False)
         self.vehicleDetailsPanel = self.uiManager.createPanel(lambda: self.selectedVehicleDetails(), const.SMALL, False, lambda self: self.changeVisibility(), const.RIGHT)
 
         self.hourlyData = {
@@ -137,8 +137,8 @@ class Game():
 
     def selectedVehicleDetails(self):
         if not self.selectedVehicle:
-            return 'Vehicle details:\n\n  Type:\n  Velocity:\n'
-        return 'Vehicle details:\n\n  Type: %s\n  Velocity: %s\n'%(type(self.selectedVehicle).__name__, self.selectedVehicle.velocity)
+            return 'Vehicle details:\n\n  Type:\n  Velocity: 00.0 km/h\n'
+        return 'Vehicle details:\n\n  Type: %s\n  Velocity: %s km/h\n'%(type(self.selectedVehicle).__name__, round(self.selectedVehicle.velocity, 1))
 
     def getRandomSpawnTime(self):
         time = const.SPAWN_FREQUENCY
@@ -211,6 +211,8 @@ class Game():
                          'vehicle2_objective_direction': vehicle2.objectiveDirection
                         },
                 'fields': {
+                           'hours': self.time.getHours(),
+                           'minutes': self.time.getMinutes(),
                            'vehicle1_position_x': vehicle1.position[0],
                            'vehicle1_position_y': vehicle1.position[1],
                            'vehicle2_position_x': vehicle2.position[0],

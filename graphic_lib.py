@@ -34,6 +34,7 @@ class Graphic():
     def drawText(self, pos, text, size, color = BLACK):
         myfont = self.fonts[size]
         text = str(text).splitlines()
+        pos = list(pos)
         for line in text:
             myline = myfont.render(line, 1, color)
             self.screen.blit(myline, pos)
