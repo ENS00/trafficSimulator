@@ -1,20 +1,22 @@
+# version 1.2.5
+- Panels updated
+- More info on csv outputs
+- Vehicles do not generate agglomerations anymore
+
+---
+
+## Things To Do:
+- [ ] Add people's behavior
+- [ ] Add panels that allow the modification of variables during simulation
+
+<br><br><br>
+
 # version 1.2.4
 - Fixed a rare bug where the simulator was unable to assign a color to a car
 - Fixed a bug: when the user chose the largest spawn frequency value, it actually generated fewer cars
 - Added new panels!
 - Panels support multi-line text
 - Drivers now drive even better
-
----
-
-## Things To Do:
-- [x] Suitably move methods away from [position.py](./position.py)
-- [x] Make some tests with different resolutions
-- [x] Create a class to delegate the task of redirecting the output
-- [ ] Add people's behavior
-- [ ] Add panels that allow the modification of variables during simulation
-
-<br><br><br>
 
 # version 1.2.3
 ## Added:

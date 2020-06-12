@@ -343,8 +343,8 @@ class Vehicle(GameRect):
                         resAngle = const.GETRADIANS(self.position,vehicle.position)
                         avoidx -= const.cos(resAngle) / distance * vehicle.width*2
                         avoidy -= const.sin(resAngle) / distance * vehicle.height*2
-                    elif self.timeStop>3000:
-                        points = self.calcFrontArea(view_w = const.QUADRUPLE_PROPORTION, view_h = const.HALF_PROPORTION)
+                    elif self.timeStop>5000:
+                        points = self.calcFrontArea(view_w = const.DOUBLE_PROPORTION, view_h = const.HALF_PROPORTION)
                         if not const.GETRECTCOLLISION(points, vehicle.points):
                             magnitude = 0
                             resAngle = const.GETRADIANS(self.position, vehicle.position)
