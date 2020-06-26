@@ -9,15 +9,16 @@ class UI():
         self.freePositionLeft = [const.W_WIDTH/30, const.W_HEIGHT/50]
         self.freePositionRight = [const.W_WIDTH*2/3, const.W_HEIGHT/50]
         self.padding = const.PROPORTION
+        self.margin = const.TRIPLE_PROPORTION
 
     def createPanel(self, updateFunction = lambda: '', size = const.MEDIUM, show = True, clickFunction = lambda self: None, align = const.LEFT):
         if align == const.LEFT:
             newPanel = Panel(self.game, size, self.freePositionLeft, updateFunction, clickFunction, show, align)
-            self.freePositionLeft[1] += size
+            self.freePositionLeft[1] += newPanel.height+self.margin
             self.panels.append(newPanel)
             return newPanel
         newPanel = Panel(self.game, size, self.freePositionRight, updateFunction, clickFunction, show, align)
-        self.freePositionRight[1] += size
+        self.freePositionRight[1] += newPanel.height+self.margin
         self.panels.append(newPanel)
         return newPanel
 
@@ -48,6 +49,7 @@ class Panel(GameRect):
                                                         [position[0] + padding + width, position[1] - padding],
                                                         [position[0] + padding + width, position[1] + padding + height],
                                                         [position[0] - padding, position[1] + padding + height]))
+        self.height = height
 
         self.updateFunction = updateFunction
         self.clickFunction = clickFunction

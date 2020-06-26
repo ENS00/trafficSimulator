@@ -65,11 +65,11 @@ class TrafficLight(RoadObject):
         self.on = on
         self.state = state
         if self.state == const.TL_RED:
-            self.count = 5
+            self.count = const.GREEN_LIGHT_DURATION
         elif self.state == const.TL_YELLOW:
-            self.count = 4
+            self.count = const.GREEN_LIGHT_DURATION - const.MIN_LIGHT_COUNT
         else:
-            self.count = 12
+            self.count = const.TL_DURATION
 
         super().draw()
         self.red = Light(game, self, [self.position[0], self.position[1] - const.TL_DISTANCES*4/3],
@@ -170,15 +170,15 @@ class TrafficLight(RoadObject):
 
     # It has 12 passes get more info on documentation
     def update(self):
-        self.count += 1
-        if self.count >= 12:
+        self.count += const.MIN_LIGHT_COUNT
+        if self.count >= const.TL_DURATION:
             self.count = 0
         if self.on:
-            if self.state == const.TL_GREEN and self.count >= 4:
+            if self.state == const.TL_GREEN and self.count >= const.GREEN_LIGHT_DURATION:
                 self.changeState()
-            elif self.state == const.TL_YELLOW and self.count != 4:
+            elif self.state == const.TL_YELLOW and self.count != const.GREEN_LIGHT_DURATION:
                 self.changeState()
-            elif self.state == const.TL_RED and self.count <= 4:
+            elif self.state == const.TL_RED and self.count <= const.GREEN_LIGHT_DURATION:
                 self.changeState()
             elif self.state not in (const.TL_GREEN,const.TL_YELLOW,const.TL_RED):
                 self.changeState()

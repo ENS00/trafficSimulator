@@ -39,9 +39,9 @@ class Gametime():
             timestamp = self.startTime + self.timeFromStart
         return int(strftime('%M',gmtime(timestamp)))
 
-    # Get a formatted version of time difference (from 113 to 1h53m)
+    # Get a formatted version of time difference (from 113 to 1m 53s)
     def getFormattedTimeDelta(self, timeDelta):
-        return strftime('%H:%M:%S',gmtime(timeDelta))
+        return timeDelta#strftime('%Mm %Ss',gmtime(timeDelta/60))
 
     def getRealISODateTime(self):
         return strftime("%Y-%m-%dT%H:%M:%SZ", gmtime(time()))

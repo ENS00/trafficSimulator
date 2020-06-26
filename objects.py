@@ -104,7 +104,7 @@ class GameCircle(GameObject):
 
 # A coordinate with a velocity and check traffic light attributes
 class Waypoint():
-    def __init__(self, x, y, velocity=None, checkTLight=False, checkLeft=False):
+    def __init__(self, x, y, velocity=None, checkTLight=False, checkLeft=False, ignore=False):
         # Position of waypoint
         self.position = (x, y)
         # Target velocity
@@ -113,6 +113,8 @@ class Waypoint():
         self.checkTLight = checkTLight
         # Do I have to check if there are vehicles on my left?
         self.checkLeft = checkLeft
+        # Ignore check (used when the vehicle is turning right)
+        self.ignore = ignore
 
     # Gets a clone with same properties
     def clone(self):

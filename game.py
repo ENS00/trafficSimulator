@@ -18,15 +18,16 @@ class Game():
 
         self.time = Gametime(self.graphic_lib, const.TIME_SPEED)
         self.vehicles = []      # all active vehicles
+        self.rain = 0
         self.selectedVehicle = None
 
         # UI panels
         self.timePanel = self.uiManager.createPanel(self.time.getFormattedTime, const.MEDIUM)
         if const.SHOW_FPS:
             self.fpsPanel = self.uiManager.createPanel(lambda: 'FPS: ' + str(round(self.time.getFps(),1)), const.SMALL)
-        self.vehicleCountPanel = self.uiManager.createPanel(lambda: 'Vehicle count: ' + str(len(self.vehicles)), const.SMALL)
+        self.vehicleCountPanel = self.uiManager.createPanel(lambda: 'Vehicle count: %i\nRain: %i mm'%(len(self.vehicles),self.rain), const.SMALL)
         self.editStatsButton = self.uiManager.createPanel(lambda: '--Edit stats--', const.SMALL, True, lambda self: self.game.statsPanel.changeVisibility())
-        self.statsPanel = self.uiManager.createPanel(lambda: 'Driver Behaviour:\n- drunkness     - *v* +\n- tiredness     - *v* +\n- elderness     [False]', const.SMALL, False)
+        self.statsPanel = self.uiManager.createPanel(lambda: 'Driver Behaviour:\n- drunkenness     100\n- tiredness     100\n- seniority     False | [TRUE]', const.SMALL, False)
         self.vehicleDetailsPanel = self.uiManager.createPanel(lambda: self.selectedVehicleDetails(), const.SMALL, False, lambda self: self.changeVisibility(), const.RIGHT)
 
         self.hourlyData = {
@@ -58,6 +59,8 @@ class Game():
                 self.crossroad.turnOnTLights(False)
             elif not self.crossroad.entries[0].tLight.on and not (self.currentHour in const.SHUTDOWN_HOURS):
                 self.crossroad.turnOnTLights()
+        else:
+            self.crossroad.turnOnTLights()
 
     # Draws everything and update properties
     def updateField(self):
@@ -108,8 +111,8 @@ class Game():
             self.currentHour = newHour
 
         # Controls all trafficlights
-        if self.currentTimeFromStart//const.TL_DURATION % 10 != self.statusLights:
-            self.statusLights = self.currentTimeFromStart//const.TL_DURATION % 10
+        if self.currentTimeFromStart//const.TL_DURATION != self.statusLights:
+            self.statusLights = self.currentTimeFromStart//const.TL_DURATION
             self.crossroad.updateTLights()
 
         # Necessary to upload object states
@@ -125,7 +128,7 @@ class Game():
             return
         if not exitL:
             exitL = self.crossroad.randomExit(entryL)
-        if const.randint(0,101) > const.SPAWN_TYPE:
+        if const.randint(0,101) >= const.SPAWN_TYPE:
             newVehicle = Bus(self, self.crossroad, entryL)
         else:
             newVehicle = Car(self, self.crossroad, entryL)
@@ -137,8 +140,16 @@ class Game():
 
     def selectedVehicleDetails(self):
         if not self.selectedVehicle:
-            return 'Vehicle details:\n\n  Type:\n  Velocity: 00.0 km/h\n'
-        return 'Vehicle details:\n\n  Type: %s\n  Velocity: %s km/h\n'%(type(self.selectedVehicle).__name__, round(self.selectedVehicle.velocity, 1))
+            return ('Vehicle details:\n\n  Type:\n  Velocity: 00.0 km/h\n\n'+
+                    'Driver details:\n\n  Drunkenness: 0.00 %\n  Tiredness: 0.00 %\n  Senior: False\n  BROKEN BRAKES'
+                   )
+        str= ('Vehicle details:\n\n  Type: %s\n  Velocity: %s km/h\n\n'+
+               'Driver details:\n\n  Drunkenness: %s %%\n  Tiredness: %s %%\n  Senior: %s'
+               )%(type(self.selectedVehicle).__name__, round(self.selectedVehicle.velocity, 1),
+                 round(self.selectedVehicle.drunkenness*100, 1), round(self.selectedVehicle.tiredness*100, 1), self.selectedVehicle.senior)
+        if self.selectedVehicle.broken_brakes:
+            return str + '\n  BROKEN BRAKES'
+        return str
 
     def getRandomSpawnTime(self):
         time = const.SPAWN_FREQUENCY

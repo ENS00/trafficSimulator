@@ -1,5 +1,5 @@
 from math import atan2, ceil, copysign, cos, degrees, hypot, pi, radians, sin, sqrt
-from random import gauss,randint
+from random import gauss,randint, betavariate
 import pygame
 # for read configuration.ini
 from configparser import ConfigParser
@@ -19,7 +19,9 @@ config.read_dict({
                             },
                   'Game': {
                            'speed': 2,
-                           'traffic_light_duration': 60,
+                           'green_light_duration': 25,
+                           'yellow_light_duration': 5,
+                           'red_light_duration': 30,
                            'spawn_rate': 2,
                            'spawn_type': 70,
                            'start_time_hours': 0,
@@ -28,6 +30,15 @@ config.read_dict({
                            'poweroff_tl_time': 23,
                            'poweron_tl_time': 5
                           },
+                  'Driver': {
+                             'drunkenness_probability': 0,
+                             'seniority_probability': 0,
+                             'tiredness_probability': 0,
+                             'rain_quantity': 0,
+                             'rain_probability': 0,
+                             'broken_brakes_probability': 0,
+                             'tire_wear': 0
+                            },
                   'Connection': {
                                  'db_name': '',
                                  'db_host': '',
@@ -43,6 +54,7 @@ config.read_dict({
 config.read(CONF_FILE_PATH)
 windowConfiguration = dict(config.items('Window'))
 gameConfiguration = dict(config.items('Game'))
+driverConfiguration = dict(config.items('Driver'))
 connectionConfiguration = dict(config.items('Connection'))
 assetsConfiguration = dict(config.items('Assets'))
 styleConfiguration = dict(config.items('Style'))
@@ -61,13 +73,29 @@ if gameConfiguration['spawn_type'] < 0:
 if gameConfiguration['spawn_type'] > 100:
     gameConfiguration['spawn_type'] = 100
 
+def FIX0100(var):
+    driverConfiguration[var] = int(driverConfiguration[var])
+    if driverConfiguration[var] < 0:
+        driverConfiguration[var] = 0
+    if driverConfiguration[var] > 100:
+        driverConfiguration[var] = 100
+
+FIX0100('drunkenness_probability')
+FIX0100('seniority_probability')
+FIX0100('tiredness_probability')
+FIX0100('rain_quantity')
+FIX0100('rain_probability')
+FIX0100('broken_brakes_probability')
+FIX0100('tire_wear')
+
 gameConfiguration['start_time_hours'] = int(gameConfiguration['start_time_hours'])
 gameConfiguration['start_time_minutes'] = int(gameConfiguration['start_time_minutes'])
 
 connectionConfiguration['db_port'] = int(connectionConfiguration['db_port'])
 
 SHUTDOWN_HOURS = []
-if gameConfiguration['poweroff_tl']:
+
+if gameConfiguration['poweroff_tl'] and gameConfiguration['poweroff_tl'].lower() != 'false':
     POWEROFF_TL_TIME = int(gameConfiguration['poweroff_tl_time'])
     POWERON_TL_TIME = int(gameConfiguration['poweron_tl_time'])
     if POWEROFF_TL_TIME > POWERON_TL_TIME:
@@ -83,129 +111,7 @@ styleConfiguration['background_color'] = [int(i) for i in styleConfiguration['ba
 
 
 
-CONFIGURATION_SPEED = gameConfiguration['speed']
-TIME_SPEED = 150*CONFIGURATION_SPEED   # REAL 1s = GAME (240+x)s
-FPS = 150                              # limit FPS
-START_TIME = gameConfiguration['start_time_hours']*3600 + gameConfiguration['start_time_minutes']*60
-
-# Variables
-FLOAT_PRECISION = 5
-SHOW_FPS = True
-# Control spawn
-SPAWN_FREQUENCY = 140-20*gameConfiguration['spawn_rate']       # every X simulated seconds
-PEAK_TIMES = [10,5,5,5,5,10,30,60,60,30,30,30,70,70,45,45,45,60,60,30,30,30,20,20]
-# PEAK_TIMES = [80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80]
-SPAWN_TYPE = gameConfiguration['spawn_type']
-
-# window position
-W_POS_X = int(windowConfiguration['position_x'])
-W_POS_Y = int(windowConfiguration['position_y'])
-
-# window dimension
-W_WIDTH = int(windowConfiguration['width'])
-W_HEIGHT = int(windowConfiguration['height'])
-W_TITLE = 'Traffico'
-PROPORTION = round(sqrt(W_WIDTH*W_HEIGHT)/200,FLOAT_PRECISION)   # proportion used for other calcs
-HALF_PROPORTION = PROPORTION/2
-DOUBLE_PROPORTION = PROPORTION*2
-QUADRUPLE_PROPORTION = PROPORTION*4
-OCTUPLE_PROPORTION = PROPORTION*8
-TWELVE_PROPORTION = PROPORTION*12
-FIFTEEN_PROPORTION = PROPORTION*15
-TWENTYTWO_PROPORTION = PROPORTION*22
-THIRTY_PROPORTION = PROPORTION*30
-TIMEPANEL_SIZE = max(round(W_WIDTH/24),16)
-HALF_CAR_WIDTH = PROPORTION*15/4        # dimension of the car
-HALF_CAR_HEIGHT = PROPORTION*9/4        # dimension of the car
-CAR_WHEELS_POSITION = DOUBLE_PROPORTION # distance of wheel from the rear (or the front) of the car
-HALF_BUS_WIDTH = PROPORTION*25/4        # dimension of the bus
-HALF_BUS_HEIGHT = PROPORTION*9/4        # dimension of the bus
-BUS_WHEELS_POSITION = PROPORTION*4      # distance of wheel from the rear (or the front) of the bus
-
-ROAD_LINE_WIDTH = int(PROPORTION*11/2)  # width of the white line
-ROAD_LINE_SIZE = int(DOUBLE_PROPORTION) # size of the white line
-ROAD_LINE_THICKNESS = PROPORTION*200/11
-STOPLINE_WIDTH = ROAD_LINE_SIZE + 2
-VEHICLE_RENDER = PROPORTION/800
-VEHICLE_SPAWN_SPEED = 30
-VEHICLE_FRICTION = 0.0004    # friction constant combined with car acceleration we get the maximum velocity of a vehicle
-CAR_ACCELERATION = 11        # this number permits to have a maximum velocity of 90
-CAR_WEIGHT = 50
-BUS_WEIGHT = 56
-
-SHAPE_RECT = 0
-SHAPE_CIRCLE = 1
-
-# TrafficLight positions
-TL_DIST_X = 12 + W_WIDTH/20
-TL_DIST_Y = 15 + W_HEIGHT/30
-TL_SIZE = PROPORTION*25/2
-TL_LIGHT_SIZE = round(PROPORTION*5/2)
-TL_DISTANCES = TL_LIGHT_SIZE*2
-
-# TrafficLight states
-TL_OFF = 3
-TL_GREEN = 2
-TL_YELLOW = 1
-TL_RED = 0
-
-# TrafficLight duration
-TL_DURATION = int(gameConfiguration['traffic_light_duration'])*10
-
-# Colors
-COLOR_ROAD = pygame.Color(128,128,128)
-WHITE = pygame.Color(255,255,255)
-GREEN_ON = pygame.Color(0,255,0)
-GREEN_OFF = pygame.Color(0,112,0)
-YELLOW_ON = pygame.Color(255,255,0)
-YELLOW_OFF = pygame.Color(112,112,0)
-RED_ON = pygame.Color(255,0,0)
-RED_OFF = pygame.Color(112,0,0)
-BLUE = pygame.Color(0,0,160)
-BLACK = pygame.Color(0,0,0)
-GRAY = pygame.Color(80,80,80)
-DARK_GRAY = pygame.Color(64,64,64)
-LIGHT_GRAY = pygame.Color(220,220,220)
-ORANGE = pygame.Color(255,160,0)
-LIGHT_GREEN = pygame.Color(160,255,0)
-WHITE_SMOKE = pygame.Color(245,245,245)
-TRANSPARENT = pygame.Color(0,0,0,0)
-
-TL_COLORS = {
-    TL_RED: (RED_OFF,RED_ON),
-    TL_YELLOW: (YELLOW_OFF,YELLOW_ON),
-    TL_GREEN: (GREEN_OFF,GREEN_ON),
-}
-BACKGROUND_COLOR = pygame.Color(*styleConfiguration['background_color'])
-BACKGROUND_PANEL = LIGHT_GRAY
-
-# UI panels
-SMALL = int(TIMEPANEL_SIZE/2)
-MEDIUM = int(TIMEPANEL_SIZE)
-
-# Orientation
-HORIZONTAL = 0
-VERTICAL = 1
-UP = 0
-DOWN = 1
-LEFT = 2
-RIGHT = 3
-FORWARD = 1
-
-
-
-
-
 # Functions
-RANDOM_COLOR_LIST = (ORANGE,YELLOW_ON,BLACK,WHITE_SMOKE,GRAY,BLUE,RED_ON,LIGHT_GREEN)
-def RANDOM_COLOR():
-    random = round(gauss(len(RANDOM_COLOR_LIST)/2, len(RANDOM_COLOR_LIST)/6))
-    if random < 0:
-        random = 0
-    if random >= len(RANDOM_COLOR_LIST):
-        random = len(RANDOM_COLOR_LIST)-1
-    return RANDOM_COLOR_LIST[random]
-
 def ROTATE(side, pos, angle):
     rad = radians(angle)
     cosTh = cos(rad)
@@ -296,6 +202,161 @@ def GETRECTCOLLISION(points1, points2):
     case8 = BETWEENPROJECTION(p23, p10, p11) and BETWEENPROJECTION(p23, p11, p12)
     return case1 or case2 or case3 or case4 or case5 or case6 or case7 or case8
 
+# Highest common factor
+def HCFNAIVE(a, b):
+    if b==0:
+        return a
+    else:
+        return HCFNAIVE(b, a%b)
+
+
+# Set main constants
+CONFIGURATION_SPEED = gameConfiguration['speed']
+TIME_SPEED = 150*CONFIGURATION_SPEED   # REAL 1s = GAME (240+x)s
+FPS = 150                              # limit FPS
+START_TIME = gameConfiguration['start_time_hours']*3600 + gameConfiguration['start_time_minutes']*60
+
+# Variables
+FLOAT_PRECISION = 5
+SHOW_FPS = True
+# Control spawn
+SPAWN_FREQUENCY = 140-20*gameConfiguration['spawn_rate']       # every X simulated seconds
+PEAK_TIMES = [10,5,5,5,5,10,30,60,60,30,30,30,70,70,45,45,45,60,60,30,30,30,20,20]
+# PEAK_TIMES = [80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80]
+SPAWN_TYPE = gameConfiguration['spawn_type']
+
+# window position
+W_POS_X = int(windowConfiguration['position_x'])
+W_POS_Y = int(windowConfiguration['position_y'])
+
+# window dimension
+W_WIDTH = int(windowConfiguration['width'])
+W_HEIGHT = int(windowConfiguration['height'])
+W_TITLE = 'Traffico'
+PROPORTION = round(sqrt(W_WIDTH*W_HEIGHT)/200,FLOAT_PRECISION)   # proportion used for other calcs
+HALF_PROPORTION = PROPORTION/2
+DOUBLE_PROPORTION = PROPORTION*2
+TRIPLE_PROPORTION = PROPORTION*3
+QUADRUPLE_PROPORTION = PROPORTION*4
+OCTUPLE_PROPORTION = PROPORTION*8
+TWELVE_PROPORTION = PROPORTION*12
+FIFTEEN_PROPORTION = PROPORTION*15
+TWENTYTWO_PROPORTION = PROPORTION*22
+THIRTY_PROPORTION = PROPORTION*30
+TIMEPANEL_SIZE = max(round(W_WIDTH/24),16)
+HALF_CAR_WIDTH = PROPORTION*15/4        # dimension of the car
+HALF_CAR_HEIGHT = PROPORTION*9/4        # dimension of the car
+CAR_WHEELS_POSITION = DOUBLE_PROPORTION # distance of wheel from the rear (or the front) of the car
+HALF_BUS_WIDTH = PROPORTION*25/4        # dimension of the bus
+HALF_BUS_HEIGHT = PROPORTION*9/4        # dimension of the bus
+BUS_WHEELS_POSITION = PROPORTION*4      # distance of wheel from the rear (or the front) of the bus
+
+ROAD_LINE_WIDTH = int(PROPORTION*11/2)  # width of the white line
+ROAD_LINE_SIZE = int(DOUBLE_PROPORTION) # size of the white line
+ROAD_LINE_THICKNESS = PROPORTION*200/11
+STOPLINE_WIDTH = ROAD_LINE_SIZE + 2
+VEHICLE_RENDER = PROPORTION/800
+VEHICLE_SPAWN_SPEED = 30
+VEHICLE_FRICTION = 0.0002    # friction constant combined with car acceleration we get the maximum velocity of a vehicle
+CAR_ACCELERATION = 11        # this number permits to have a maximum velocity of 90
+CAR_WEIGHT = 50
+BUS_WEIGHT = 56
+
+# Driver
+DRUNKENNESS = 0
+TIREDNESS = 1
+SENIORITY = 2
+TIRE_WEAR = 3
+BROKEN_BRAKES = 4
+ACCEPTABLE_TIRE_WEAR = 40
+#CURRENT_RAIN = # gauss o distribuzione triangolare?
+def DRIVER_PARAMETER(param=DRUNKENNESS):
+    if param==DRUNKENNESS and randint(0,100)<driverConfiguration['drunkenness_probability']:
+        return betavariate(2,5)
+    if param==TIREDNESS and randint(0,100)<driverConfiguration['tiredness_probability']:
+        return betavariate(2,5)
+    if param==SENIORITY:
+        return randint(0,100)<driverConfiguration['seniority_probability']
+    if param==TIRE_WEAR:
+        if randint(0,100)<driverConfiguration['tire_wear']:
+            return randint(ACCEPTABLE_TIRE_WEAR, 100)
+        else:
+            return randint(0, ACCEPTABLE_TIRE_WEAR)
+    if param==BROKEN_BRAKES:
+        return randint(0,100)<driverConfiguration['broken_brakes_probability']
+    return 0
+
+SHAPE_RECT = 0
+SHAPE_CIRCLE = 1
+
+# TrafficLight positions
+TL_DIST_X = 12 + W_WIDTH/20
+TL_DIST_Y = 15 + W_HEIGHT/30
+TL_SIZE = PROPORTION*25/2
+TL_LIGHT_SIZE = round(PROPORTION*5/2)
+TL_DISTANCES = TL_LIGHT_SIZE*2
+
+# TrafficLight states
+TL_OFF = 3
+TL_GREEN = 2
+TL_YELLOW = 1
+TL_RED = 0
+
+# TrafficLight duration
+GREEN_LIGHT_DURATION = int(gameConfiguration['green_light_duration'])*5
+YELLOW_LIGHT_DURATION = int(gameConfiguration['yellow_light_duration'])*5
+RED_LIGHT_DURATION = int(gameConfiguration['red_light_duration'])*5
+TL_DURATION = GREEN_LIGHT_DURATION + YELLOW_LIGHT_DURATION + RED_LIGHT_DURATION
+MIN_LIGHT_COUNT = HCFNAIVE(HCFNAIVE(GREEN_LIGHT_DURATION, YELLOW_LIGHT_DURATION), RED_LIGHT_DURATION)
+
+# Colors
+COLOR_ROAD = pygame.Color(128,128,128)
+WHITE = pygame.Color(255,255,255)
+GREEN_ON = pygame.Color(0,255,0)
+GREEN_OFF = pygame.Color(0,112,0)
+YELLOW_ON = pygame.Color(255,255,0)
+YELLOW_OFF = pygame.Color(112,112,0)
+RED_ON = pygame.Color(255,0,0)
+RED_OFF = pygame.Color(112,0,0)
+BLUE = pygame.Color(0,0,160)
+BLACK = pygame.Color(0,0,0)
+GRAY = pygame.Color(80,80,80)
+DARK_GRAY = pygame.Color(64,64,64)
+LIGHT_GRAY = pygame.Color(220,220,220)
+ORANGE = pygame.Color(255,160,0)
+LIGHT_GREEN = pygame.Color(160,255,0)
+WHITE_SMOKE = pygame.Color(245,245,245)
+TRANSPARENT = pygame.Color(0,0,0,0)
+
+TL_COLORS = {
+    TL_RED: (RED_OFF,RED_ON),
+    TL_YELLOW: (YELLOW_OFF,YELLOW_ON),
+    TL_GREEN: (GREEN_OFF,GREEN_ON),
+}
+BACKGROUND_COLOR = pygame.Color(*styleConfiguration['background_color'])
+BACKGROUND_PANEL = LIGHT_GRAY
+
+RANDOM_COLOR_LIST = (ORANGE,YELLOW_ON,BLACK,WHITE_SMOKE,GRAY,BLUE,RED_ON,LIGHT_GREEN)
+def RANDOM_COLOR():
+    random = round(gauss(len(RANDOM_COLOR_LIST)/2, len(RANDOM_COLOR_LIST)/6))
+    if random < 0:
+        random = 0
+    if random >= len(RANDOM_COLOR_LIST):
+        random = len(RANDOM_COLOR_LIST)-1
+    return RANDOM_COLOR_LIST[random]
+
+# UI panels
+SMALL = int(TIMEPANEL_SIZE/2)
+MEDIUM = int(TIMEPANEL_SIZE)
+
+# Orientation
+HORIZONTAL = 0
+VERTICAL = 1
+UP = 0
+DOWN = 1
+LEFT = 2
+RIGHT = 3
+FORWARD = 1
 
 # Images
 if 'icon_path' in assetsConfiguration:
