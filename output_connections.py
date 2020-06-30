@@ -1,7 +1,6 @@
 import os
 from influxdb import InfluxDBClient
 import csv
-import const
 
 class Output():
 	def writeData(self, data):
