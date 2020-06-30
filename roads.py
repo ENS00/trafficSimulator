@@ -65,11 +65,11 @@ class TrafficLight(RoadObject):
         self.on = on
         self.state = state
         if self.state == const.TL_RED:
-            self.count = const.GREEN_LIGHT_DURATION
+            self.count = const.GREEN_LIGHT_DURATION + const.YELLOW_LIGHT_DURATION
         elif self.state == const.TL_YELLOW:
-            self.count = const.GREEN_LIGHT_DURATION - const.MIN_LIGHT_COUNT
+            self.count = const.GREEN_LIGHT_DURATION
         else:
-            self.count = const.TL_DURATION
+            self.count = const.TL_DURATION-(const.RED_LIGHT_DURATION-(const.GREEN_LIGHT_DURATION + const.YELLOW_LIGHT_DURATION))/2
 
         super().draw()
         self.red = Light(game, self, [self.position[0], self.position[1] - const.TL_DISTANCES*4/3],
@@ -176,11 +176,11 @@ class TrafficLight(RoadObject):
         if self.on:
             if self.state == const.TL_GREEN and self.count >= const.GREEN_LIGHT_DURATION:
                 self.changeState()
-            elif self.state == const.TL_YELLOW and self.count != const.GREEN_LIGHT_DURATION:
+            elif self.state == const.TL_YELLOW and (self.count >= const.GREEN_LIGHT_DURATION+const.YELLOW_LIGHT_DURATION or self.count < const.GREEN_LIGHT_DURATION):
                 self.changeState()
-            elif self.state == const.TL_RED and self.count <= const.GREEN_LIGHT_DURATION:
+            elif self.state == const.TL_RED and self.count <= const.GREEN_LIGHT_DURATION+const.YELLOW_LIGHT_DURATION:
                 self.changeState()
-            elif self.state not in (const.TL_GREEN,const.TL_YELLOW,const.TL_RED):
+            elif self.state not in (const.TL_GREEN, const.TL_YELLOW,const.TL_RED):
                 self.changeState()
         else:
             self.changeState()
@@ -547,10 +547,10 @@ class Crossroad(RoadObject):
                 i.createTrafficLight(const.TL_GREEN)
         points = ([minpstop[0], minpstop[1]], [maxpstop[0], minpstop[1]],
                   [maxpstop[0], maxpstop[1]], [minpstop[0], maxpstop[1]])
-        game.graphic_lib.updateAreas.append(game.graphic_lib.graphic.Rect(0, minpstop[1]-const.QUADRUPLE_PROPORTION,
-                                                    const.W_WIDTH, (const.ROAD_LINE_THICKNESS+const.QUADRUPLE_PROPORTION)*2))
-        game.graphic_lib.updateAreas.append(game.graphic_lib.graphic.Rect(minpstop[0]-const.QUADRUPLE_PROPORTION, 0,
-                                                    (const.ROAD_LINE_THICKNESS+const.QUADRUPLE_PROPORTION)*2, const.W_HEIGHT))
+        game.graphic_lib.updateAreas.append(game.graphic_lib.graphic.Rect(0, minpstop[1]-const.OCTUPLE_PROPORTION,
+                                                    const.W_WIDTH, (const.ROAD_LINE_THICKNESS+const.OCTUPLE_PROPORTION)*2))
+        game.graphic_lib.updateAreas.append(game.graphic_lib.graphic.Rect(minpstop[0]-const.OCTUPLE_PROPORTION, 0,
+                                                    (const.ROAD_LINE_THICKNESS+const.OCTUPLE_PROPORTION)*2, const.W_HEIGHT))
         super().__init__(game, const.COLOR_ROAD, points)
 
     def draw(self):

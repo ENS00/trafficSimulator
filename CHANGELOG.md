@@ -1,3 +1,9 @@
+# version 1.3
+## Added:
+- Bug fixed, from now a car that has to turn left, starts to turn earlier, to get a better trajectory
+- Bug fixed, the duration of the traffic light didn't respect the configuration provided by the user
+- Drunkenness, tiredness, seniority, tire wear, broken brakes and rain affect vehicles
+
 # version 1.2.6
 ## Added:
 - Added options to better control traffic lights

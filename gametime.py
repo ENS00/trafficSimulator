@@ -1,21 +1,21 @@
 from time import gmtime, time, strftime
-from const import START_TIME, FPS
+from const import START_TIME, FPS, CONFIGURATION_SPEED
 
 # Manage the current in-game time
 class Gametime():
-    def __init__(self, graphic_lib, ratio, startTime = START_TIME, fps = FPS):
+    def __init__(self, graphic_lib, startTime = START_TIME, fps = FPS):
         self.clock = graphic_lib.graphic.time.Clock()
         graphic_lib.clock = self.clock
-        self.ratio = ratio
         self.graphic_lib = graphic_lib
         self.fps = float(fps)
+        self.speed = CONFIGURATION_SPEED
         self.startTime = startTime
         self.timeFromStart = 0
 
     # Get the current in-game time
     def getTime(self):
         self.clock.tick(self.fps) # necessary for fps
-        self.timeFromStart += self.ratio/50000*self.getFps()
+        self.timeFromStart += 3/500*self.getFps()
         return int(self.timeFromStart)
 
     def getFps(self):
@@ -45,3 +45,17 @@ class Gametime():
 
     def getRealISODateTime(self):
         return strftime("%Y-%m-%dT%H:%M:%SZ", gmtime(time()))
+
+    def increaseSpeed(self):
+        self.speed+=1
+        if self.speed>3:
+            self.speed = 3
+            return
+        self.fps += 25
+
+    def decreaseSpeed(self):
+        self.speed -= 1
+        if self.speed < 1:
+            self.speed = 1
+            return
+        self.fps -= 25

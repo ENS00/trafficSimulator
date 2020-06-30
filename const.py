@@ -1,4 +1,5 @@
 from math import atan2, ceil, copysign, cos, degrees, hypot, pi, radians, sin, sqrt
+from numpy import random as rndP
 from random import gauss,randint, betavariate
 import pygame
 # for read configuration.ini
@@ -21,21 +22,20 @@ config.read_dict({
                            'speed': 2,
                            'green_light_duration': 25,
                            'yellow_light_duration': 5,
-                           'red_light_duration': 30,
+                           'red_light_duration': 40,
                            'spawn_rate': 2,
                            'spawn_type': 70,
                            'start_time_hours': 0,
                            'start_time_minutes': 0,
                            'poweroff_tl': False,
                            'poweroff_tl_time': 23,
-                           'poweron_tl_time': 5
+                           'poweron_tl_time': 5,
+                           'rain_probability': 0
                           },
                   'Driver': {
                              'drunkenness_probability': 0,
                              'seniority_probability': 0,
                              'tiredness_probability': 0,
-                             'rain_quantity': 0,
-                             'rain_probability': 0,
                              'broken_brakes_probability': 0,
                              'tire_wear': 0
                             },
@@ -67,11 +67,18 @@ if gameConfiguration['speed'] < 1 or gameConfiguration['speed'] > 3:
 gameConfiguration['spawn_rate'] = int(gameConfiguration['spawn_rate'])
 if gameConfiguration['spawn_rate'] < 1 or gameConfiguration['spawn_rate'] > 3:
     gameConfiguration['spawn_rate'] = 2
+
 gameConfiguration['spawn_type'] = int(gameConfiguration['spawn_type'])
 if gameConfiguration['spawn_type'] < 0:
     gameConfiguration['spawn_type'] = 0
 if gameConfiguration['spawn_type'] > 100:
     gameConfiguration['spawn_type'] = 100
+
+gameConfiguration['rain_probability'] = int(gameConfiguration['rain_probability'])
+if gameConfiguration['rain_probability'] < 0:
+    gameConfiguration['rain_probability'] = 0
+if gameConfiguration['rain_probability'] > 100:
+    gameConfiguration['rain_probability'] = 100
 
 def FIX0100(var):
     driverConfiguration[var] = int(driverConfiguration[var])
@@ -83,10 +90,9 @@ def FIX0100(var):
 FIX0100('drunkenness_probability')
 FIX0100('seniority_probability')
 FIX0100('tiredness_probability')
-FIX0100('rain_quantity')
-FIX0100('rain_probability')
 FIX0100('broken_brakes_probability')
 FIX0100('tire_wear')
+driverConfiguration['broken_brakes_probability']/=100
 
 gameConfiguration['start_time_hours'] = int(gameConfiguration['start_time_hours'])
 gameConfiguration['start_time_minutes'] = int(gameConfiguration['start_time_minutes'])
@@ -213,14 +219,14 @@ def HCFNAIVE(a, b):
 # Set main constants
 CONFIGURATION_SPEED = gameConfiguration['speed']
 TIME_SPEED = 150*CONFIGURATION_SPEED   # REAL 1s = GAME (240+x)s
-FPS = 150                              # limit FPS
+FPS = 100+25*CONFIGURATION_SPEED        # limit FPS
 START_TIME = gameConfiguration['start_time_hours']*3600 + gameConfiguration['start_time_minutes']*60
 
 # Variables
 FLOAT_PRECISION = 5
-SHOW_FPS = True
+SHOW_FPS = False
 # Control spawn
-SPAWN_FREQUENCY = 140-20*gameConfiguration['spawn_rate']       # every X simulated seconds
+SPAWN_FREQUENCY = 150-25*gameConfiguration['spawn_rate']       # every X simulated seconds
 PEAK_TIMES = [10,5,5,5,5,10,30,60,60,30,30,30,70,70,45,45,45,60,60,30,30,30,20,20]
 # PEAK_TIMES = [80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80,80]
 SPAWN_TYPE = gameConfiguration['spawn_type']
@@ -238,11 +244,13 @@ HALF_PROPORTION = PROPORTION/2
 DOUBLE_PROPORTION = PROPORTION*2
 TRIPLE_PROPORTION = PROPORTION*3
 QUADRUPLE_PROPORTION = PROPORTION*4
+SEXTUPLE_PROPORTION = PROPORTION*6
 OCTUPLE_PROPORTION = PROPORTION*8
 TWELVE_PROPORTION = PROPORTION*12
 FIFTEEN_PROPORTION = PROPORTION*15
 TWENTYTWO_PROPORTION = PROPORTION*22
 THIRTY_PROPORTION = PROPORTION*30
+
 TIMEPANEL_SIZE = max(round(W_WIDTH/24),16)
 HALF_CAR_WIDTH = PROPORTION*15/4        # dimension of the car
 HALF_CAR_HEIGHT = PROPORTION*9/4        # dimension of the car
@@ -255,12 +263,14 @@ ROAD_LINE_WIDTH = int(PROPORTION*11/2)  # width of the white line
 ROAD_LINE_SIZE = int(DOUBLE_PROPORTION) # size of the white line
 ROAD_LINE_THICKNESS = PROPORTION*200/11
 STOPLINE_WIDTH = ROAD_LINE_SIZE + 2
-VEHICLE_RENDER = PROPORTION/800
+VEHICLE_RENDER = PROPORTION/1600*CONFIGURATION_SPEED
 VEHICLE_SPAWN_SPEED = 30
 VEHICLE_FRICTION = 0.0002    # friction constant combined with car acceleration we get the maximum velocity of a vehicle
-CAR_ACCELERATION = 11        # this number permits to have a maximum velocity of 90
+VEHICLE_ACCELERATION = 11
 CAR_WEIGHT = 50
 BUS_WEIGHT = 56
+
+WEATHER_FORECAST = []
 
 # Driver
 DRUNKENNESS = 0
@@ -269,22 +279,36 @@ SENIORITY = 2
 TIRE_WEAR = 3
 BROKEN_BRAKES = 4
 ACCEPTABLE_TIRE_WEAR = 40
-#CURRENT_RAIN = # gauss o distribuzione triangolare?
 def DRIVER_PARAMETER(param=DRUNKENNESS):
     if param==DRUNKENNESS and randint(0,100)<driverConfiguration['drunkenness_probability']:
-        return betavariate(2,5)
+        return betavariate(2, 6)*100
     if param==TIREDNESS and randint(0,100)<driverConfiguration['tiredness_probability']:
-        return betavariate(2,5)
+        return betavariate(2, 6)*100
     if param==SENIORITY:
-        return randint(0,100)<driverConfiguration['seniority_probability']
+        return randint(0, 100)<driverConfiguration['seniority_probability']
     if param==TIRE_WEAR:
-        if randint(0,100)<driverConfiguration['tire_wear']:
+        if randint(0, 100)<driverConfiguration['tire_wear']:
             return randint(ACCEPTABLE_TIRE_WEAR, 100)
         else:
             return randint(0, ACCEPTABLE_TIRE_WEAR)
     if param==BROKEN_BRAKES:
-        return randint(0,100)<driverConfiguration['broken_brakes_probability']
+        return randint(0, 100)<driverConfiguration['broken_brakes_probability']
     return 0
+
+# max 60mm
+def GETRAINQUANTITYPERDAY():
+    if not gameConfiguration['rain_probability']:
+        return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    x = rndP.poisson(lam=rndP.randint(gameConfiguration['rain_probability']/7, gameConfiguration['rain_probability']/7*6), size=24)
+    x = list(map(lambda element: (element-25)*6/5 if element < 75 else 60, x))
+    return list(map(lambda element: element if element > 0 else 0,x))
+
+def GETRAIN():
+    global WEATHER_FORECAST
+    if len(WEATHER_FORECAST):
+        return WEATHER_FORECAST.pop()
+    WEATHER_FORECAST = GETRAINQUANTITYPERDAY()
+    return WEATHER_FORECAST.pop()
 
 SHAPE_RECT = 0
 SHAPE_CIRCLE = 1
@@ -368,7 +392,7 @@ else:
 OUTPUT_DEVICE = None
 if connectionConfiguration['db_name'] and connectionConfiguration['db_host']:
     # connection string to the output influxdb
-    OUTPUT_DEVICE = out_conn.DBOutput(connectionConfiguration['db_host'],connectionConfiguration['db_name'],connectionConfiguration['db_port'])
+    OUTPUT_DEVICE = out_conn.DBOutput(connectionConfiguration['db_host'], connectionConfiguration['db_name'], connectionConfiguration['db_port'])
 if (not OUTPUT_DEVICE or not OUTPUT_DEVICE.flagConnection) and connectionConfiguration['csv_path']:
     del OUTPUT_DEVICE
     # connection string to the output csv file

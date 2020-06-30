@@ -16,18 +16,18 @@ class Game():
         self.uiManager = UI(self)
         self.eventHandler = EventHandler(self, self.uiManager)
 
-        self.time = Gametime(self.graphic_lib, const.TIME_SPEED)
+        self.time = Gametime(self.graphic_lib)
         self.vehicles = []      # all active vehicles
-        self.rain = 0
+        self.rain = const.GETRAIN()
         self.selectedVehicle = None
 
         # UI panels
         self.timePanel = self.uiManager.createPanel(self.time.getFormattedTime, const.MEDIUM)
         if const.SHOW_FPS:
-            self.fpsPanel = self.uiManager.createPanel(lambda: 'FPS: ' + str(round(self.time.getFps(),1)), const.SMALL)
-        self.vehicleCountPanel = self.uiManager.createPanel(lambda: 'Vehicle count: %i\nRain: %i mm'%(len(self.vehicles),self.rain), const.SMALL)
-        self.editStatsButton = self.uiManager.createPanel(lambda: '--Edit stats--', const.SMALL, True, lambda self: self.game.statsPanel.changeVisibility())
-        self.statsPanel = self.uiManager.createPanel(lambda: 'Driver Behaviour:\n- drunkenness     100\n- tiredness     100\n- seniority     False | [TRUE]', const.SMALL, False)
+            self.fpsPanel = self.uiManager.createPanel(lambda: 'FPS: ' + str(round(self.time.getFps() ,1)), const.SMALL)
+        self.vehicleCountPanel = self.uiManager.createPanel(lambda: 'Current Speed: %i\nVehicle count: %i\nRain: %i mm          '%(self.time.speed, len(self.vehicles), self.rain), const.SMALL)
+        self.increaseSpeedButton = self.uiManager.createPanel(lambda: 'Increase Speed', const.SMALL, True, lambda self: self.game.time.increaseSpeed())
+        self.decreaseSpeedButton = self.uiManager.createPanel(lambda: 'Decrease Speed', const.SMALL, True, lambda self: self.game.time.decreaseSpeed())
         self.vehicleDetailsPanel = self.uiManager.createPanel(lambda: self.selectedVehicleDetails(), const.SMALL, False, lambda self: self.changeVisibility(), const.RIGHT)
 
         self.hourlyData = {
@@ -90,6 +90,7 @@ class Game():
                     self.crossroad.turnOnTLights(False)
                 elif not self.crossroad.entries[0].tLight.on and not (newHour in const.SHUTDOWN_HOURS):
                     self.crossroad.turnOnTLights()
+            self.rain = const.GETRAIN()
 
             # register hourly report
             data = {
@@ -128,7 +129,7 @@ class Game():
             return
         if not exitL:
             exitL = self.crossroad.randomExit(entryL)
-        if const.randint(0,101) >= const.SPAWN_TYPE:
+        if const.randint(0,100) >= const.SPAWN_TYPE:
             newVehicle = Bus(self, self.crossroad, entryL)
         else:
             newVehicle = Car(self, self.crossroad, entryL)
@@ -141,19 +142,20 @@ class Game():
     def selectedVehicleDetails(self):
         if not self.selectedVehicle:
             return ('Vehicle details:\n\n  Type:\n  Velocity: 00.0 km/h\n\n'+
-                    'Driver details:\n\n  Drunkenness: 0.00 %\n  Tiredness: 0.00 %\n  Senior: False\n  BROKEN BRAKES'
+                    'Driver details:\n\n  Drunkenness: 0.00 %\n  Tiredness: 0.00 %\n  Senior: False\n  Tire Wear: 0.00 %\n  BROKEN BRAKES'
                    )
         str= ('Vehicle details:\n\n  Type: %s\n  Velocity: %s km/h\n\n'+
-               'Driver details:\n\n  Drunkenness: %s %%\n  Tiredness: %s %%\n  Senior: %s'
+               'Driver details:\n\n  Drunkenness: %s %%\n  Tiredness: %s %%\n  Senior: %s\n  Tire Wear: %s %%'
                )%(type(self.selectedVehicle).__name__, round(self.selectedVehicle.velocity, 1),
-                 round(self.selectedVehicle.drunkenness*100, 1), round(self.selectedVehicle.tiredness*100, 1), self.selectedVehicle.senior)
+                 round(self.selectedVehicle.drunkenness, 1), round(self.selectedVehicle.tiredness, 1),
+                 self.selectedVehicle.senior, round(self.selectedVehicle.tire_wear, 1))
         if self.selectedVehicle.broken_brakes:
             return str + '\n  BROKEN BRAKES'
         return str
 
     def getRandomSpawnTime(self):
         time = const.SPAWN_FREQUENCY
-        while const.randint(1,101) > const.PEAK_TIMES[self.currentHour]:
+        while const.randint(0,100) > const.PEAK_TIMES[self.currentHour]:
             time += const.SPAWN_FREQUENCY
         return time
 
@@ -168,7 +170,13 @@ class Game():
                         'tags': {
                                  'vehicle_type': type(obj).__name__,
                                  'spawn_lane': obj.spawnLane,
-                                 'objective_direction': obj.objectiveDirection
+                                 'objective_direction': obj.objectiveDirection,
+                                 'drunkenness': round(obj.drunkenness, 1),
+                                 'tiredness': round(obj.tiredness, 1),
+                                 'senior': obj.senior or 'False',
+                                 'tire_wear': round(obj.tire_wear, 1),
+                                 'broken_brakes': obj.broken_brakes or 'False',
+                                 'rain_quantity': self.rain
                                 },
                         'fields': {
                                    'total_time': self.time.getFormattedTimeDelta(obj.totalTime),
@@ -231,7 +239,18 @@ class Game():
                            'vehicle1_degrees': round(vehicle1.degrees),
                            'vehicle2_degrees': round(vehicle2.degrees),
                            'vehicle1_velocity(km/h)': round(vehicle1.velocity),
-                           'vehicle2_velocity(km/h)': round(vehicle2.velocity)
+                           'vehicle2_velocity(km/h)': round(vehicle2.velocity),
+                           'vehicle1_drunkenness': round(vehicle1.drunkenness),
+                           'vehicle2_drunkenness': round(vehicle2.drunkenness),
+                           'vehicle1_tiredness': round(vehicle1.tiredness),
+                           'vehicle2_tiredness': round(vehicle2.tiredness),
+                           'vehicle1_senior': vehicle1.senior or 'False',
+                           'vehicle2_senior': vehicle2.senior or 'False',
+                           'vehicle1_tire_wear': round(vehicle1.tire_wear),
+                           'vehicle2_tire_wear': round(vehicle2.tire_wear),
+                           'vehicle1_broken_brakes': vehicle1.broken_brakes or 'False',
+                           'vehicle2_broken_brakes': vehicle2.broken_brakes or 'False',
+                           'rain_quantity': self.rain
                           },
                 'time': self.time.getRealISODateTime()
                }
