@@ -6,6 +6,7 @@ import pygame
 from configparser import ConfigParser
 from os import path
 import output_connections as out_conn
+from numpy import random as rndP
 
 pygame.init()
 CONF_FILE_PATH = r'configuration.ini'
@@ -403,3 +404,17 @@ if not OUTPUT_DEVICE or not OUTPUT_DEVICE.flagConnection:
     del OUTPUT_DEVICE
     # instantiate null output
     OUTPUT_DEVICE = out_conn.Output()
+
+
+#Generates an int (min=0 and max=100) used for generating a list of int values with poisson formula
+#then all values above 100 are set to 100
+def PoissonFormula():
+    intRnd = rndP.randint(0, 100)
+    x = rndP.poisson(lam=intRnd, size=24)
+    
+    size = len(x)
+    for i in range(size):
+        if i > 100
+            i = 100
+        
+        return i
