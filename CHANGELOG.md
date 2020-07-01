@@ -1,3 +1,7 @@
+# version 1.3.1
+## Added:
+- Fix too many crashes due to rear-end collisions
+
 # version 1.3
 ## Added:
 - Bug fixed, from now a car that has to turn left, starts to turn earlier, to get a better trajectory
@@ -10,14 +14,6 @@
 - Bug fixed, if you choose to never turn off the traffic light, it now works as expected
 - Added characteristics that influence the driver and the vehicle, drunkenness, tiredness, seniority, tire wear, broken brakes and rain
 - **N.B.** At the moment only drunkenness and broken brakes affect the movement of the vehicle
-
----
-
-## Things To Do:
-- [ ] Add people's behavior
-- [ ] ~~Add panels that allow the modification of variables during simulation~~
-
-<br><br><br>
 
 # version 1.2.5
 ## Added:

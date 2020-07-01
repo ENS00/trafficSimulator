@@ -72,7 +72,7 @@ class Vehicle(GameRect):
                 self.maxVel = self.velocity
             if self.velocity < self.minVel:
                 self.minVel = self.velocity
-            if self.startTimeStop and self.velocity>5:
+            if self.startTimeStop and self.velocity>8:
                 self.totalTimeStop += self.timeStop
                 self.startTimeStop = 0
                 self.timeStop = 0
@@ -326,7 +326,7 @@ class Vehicle(GameRect):
             if self.timeStop>400*self.tired_value and self.velocity<2:
                 # he changes his mind and prefers to go straight
                 lane = self.crossroad.getOppositeLanes(self)[0]
-                self.waypoints = [Waypoint(lane.endLanePoints[1][0], lane.endLanePoints[1][1], 90, checkTLight=True)]
+                self.waypoints = [Waypoint(lane.endLanePoints[1][0], lane.endLanePoints[1][1], 60, checkTLight=True)]
                 return
             # debug turn area
             # self.game.graphic_lib.graphic.draw.rect(self.game.graphic_lib.screen, const.RED_ON, collideArea)
@@ -353,6 +353,7 @@ class Vehicle(GameRect):
                     objective = Waypoint(currentEndLane[0] - const.QUADRUPLE_PROPORTION, currentEndLane[1], 0)
 
         distanceFromObjective = const.DISTANCE(self.points[0], objective.position)
+        brake = 0
 
         if distanceFromObjective and objective.velocity > self.velocity:
             if self.velocity:
@@ -377,11 +378,16 @@ class Vehicle(GameRect):
             mindistance = 10000
             skipVehicles = False
             collisionWarning = False
-            if self.timeStop<=300*self.tired_value:
+            if self.timeStop<=70*self.tired_value:
                 points = self.calcFrontArea()
-            elif self.timeStop>300*self.tired_value and self.timeStop<2000*self.tired_value:
+            elif self.timeStop>70*self.tired_value and self.timeStop<=300*self.tired_value:
+                if type(self).__name__ == 'Bus':
+                    points = self.calcFrontArea(view_w = const.QUADRUPLE_PROPORTION)
+                else:
+                    points = self.calcFrontArea(view_w = const.OCTUPLE_PROPORTION)
+            elif self.timeStop>300*self.tired_value and self.totalTimeStop<1600*self.tired_value:
                 points = self.calcFrontArea(view_w = const.QUADRUPLE_PROPORTION, view_h = const.PROPORTION)
-            elif self.timeStop<3000*self.tired_value:
+            elif self.totalTimeStop<3000*self.tired_value:
                 points = self.calcFrontArea(view_w = const.DOUBLE_PROPORTION, view_h = const.HALF_PROPORTION)
             else:
                 skipVehicles = True
@@ -404,27 +410,29 @@ class Vehicle(GameRect):
                         return
                     if const.GETRECTCOLLISION(points, vehicle.points):
                         collisionWarning = True
-                        if self.timeStop<300*self.tired_value and self.velocity>8:
+                        if self.timeStop<300*self.tired_value:
                             resAngle = const.GETRADIANS(self.position,vehicle.position)
                             avoidx -= const.cos(resAngle) / distance * vehicle.width*2
                             avoidy -= const.sin(resAngle) / distance * vehicle.height*2
-                        elif self.timeStop>2000*self.tired_value:
+                        elif self.timeStop>1600*self.tired_value:
                             resAngle = const.GETRADIANS(self.position, vehicle.position)
                             avoidx -= const.cos(resAngle) / distance * vehicle.width*20
                             avoidy -= const.sin(resAngle) / distance * vehicle.height*20
                         elif self.timeStop>300*self.tired_value:
                             resAngle = const.GETRADIANS(self.position, vehicle.position)
-                            avoidx -= const.cos(resAngle) / distance * vehicle.width*4
-                            avoidy -= const.sin(resAngle) / distance * vehicle.height*4
+                            avoidx -= const.cos(resAngle) / distance * vehicle.width*3.5
+                            avoidy -= const.sin(resAngle) / distance * vehicle.height*3.5
             if collisionWarning:
-                if self.timeStop<300*self.tired_value and self.velocity>8:
-                    self.brake((1+self.velocity)*5/mindistance)
-                elif self.timeStop>2000*self.tired_value:
-                    self.brake(1)
-                elif self.timeStop>300*self.tired_value:
-                    self.brake((1+self.velocity)*3/distance)
-                elif self.velocity<10:
-                    self.brake((1+self.velocity)*2/distance)
+                if mindistance>40 and self.velocity<15:
+                    self.brake(max(brake, 1/mindistance))
+                elif self.timeStop<300*self.tired_value and (self.velocity>15 or mindistance<50):
+                    self.brake(max(brake, (1+self.velocity**4)*12/mindistance))
+                elif self.timeStop>1600*self.tired_value:
+                    self.brake(0)
+                elif self.timeStop>300*self.tired_value or mindistance>50:
+                    self.brake(max(brake, (1+self.velocity)*6/mindistance))
+                elif self.velocity<20:
+                    self.brake(max(brake, 1/mindistance))
 
         deg = const.degrees(const.atan2(avoidy,avoidx))
 
@@ -492,7 +500,7 @@ class Vehicle(GameRect):
         ]
 
     # The front of the vehicle
-    def calcFrontArea(self, view_h = const.DOUBLE_PROPORTION, view_w = const.FIFTEEN_PROPORTION):
+    def calcFrontArea(self, view_h = const.DOUBLE_PROPORTION, view_w = const.TWENTYTWO_PROPORTION):
         mysin = const.sin(const.radians(self.degrees))
         mycos = const.cos(const.radians(self.degrees))
         points = self.calcPoints()

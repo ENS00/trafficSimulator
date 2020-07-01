@@ -4,6 +4,7 @@ You will need some libraries before issuing `python start.py`:
 To install the dependencies run the following code in a terminal window:
 ```
 python3 -m pip install -U pip
+python3 -m pip install influxdb
 python3 -m pip install numpy
 python3 -m pip install pygame
 ```
