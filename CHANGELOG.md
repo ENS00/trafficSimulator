@@ -1,3 +1,9 @@
+# version 1.3.2
+## Added:
+- Fixes the simulator crash when attempting to save informations containing an incorrect data type
+- Fix very slow speed when turning left or right
+- Fix agglomeration in the middle of the intersection
+
 # version 1.3.1
 ## Added:
 - Fix too many crashes due to rear-end collisions

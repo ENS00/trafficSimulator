@@ -175,7 +175,7 @@ class Game():
                                  'tiredness': round(obj.tiredness, 1),
                                  'senior': obj.senior or 'False',
                                  'tire_wear': round(obj.tire_wear, 1),
-                                 'broken_brakes': obj.broken_brakes or 'False',
+                                 'broken_brakes': obj.broken_brakes,
                                  'rain_quantity': self.rain
                                 },
                         'fields': {
@@ -244,12 +244,12 @@ class Game():
                            'vehicle2_drunkenness': round(vehicle2.drunkenness),
                            'vehicle1_tiredness': round(vehicle1.tiredness),
                            'vehicle2_tiredness': round(vehicle2.tiredness),
-                           'vehicle1_senior': vehicle1.senior or 'False',
-                           'vehicle2_senior': vehicle2.senior or 'False',
+                           'vehicle1_senior': vehicle1.senior,
+                           'vehicle2_senior': vehicle2.senior,
                            'vehicle1_tire_wear': round(vehicle1.tire_wear),
                            'vehicle2_tire_wear': round(vehicle2.tire_wear),
-                           'vehicle1_broken_brakes': vehicle1.broken_brakes or 'False',
-                           'vehicle2_broken_brakes': vehicle2.broken_brakes or 'False',
+                           'vehicle1_broken_brakes': vehicle1.broken_brakes,
+                           'vehicle2_broken_brakes': vehicle2.broken_brakes,
                            'rain_quantity': self.rain
                           },
                 'time': self.time.getRealISODateTime()

@@ -230,13 +230,13 @@ class Vehicle(GameRect):
             # start of new lane
             extension_l += const.DOUBLE_PROPORTION
             if lane.isA('right'):
-                self.waypoints.append(Waypoint(lane.startLanePoints[rightS][0] + extension_l, lane.startLanePoints[rightS][1], 10, ignore=True))
+                self.waypoints.append(Waypoint(lane.startLanePoints[rightS][0] + extension_l, lane.startLanePoints[rightS][1], 13, ignore=True))
             elif lane.isA('left'):
-                self.waypoints.append(Waypoint(lane.startLanePoints[rightS][0] - extension_l, lane.startLanePoints[rightS][1], 10, ignore=True))
+                self.waypoints.append(Waypoint(lane.startLanePoints[rightS][0] - extension_l, lane.startLanePoints[rightS][1], 13, ignore=True))
             elif lane.isA('up'):
-                self.waypoints.append(Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1] - extension_l, 10, ignore=True))
+                self.waypoints.append(Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1] - extension_l, 13, ignore=True))
             else:
-                self.waypoints.append(Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1] + extension_l, 10, ignore=True))
+                self.waypoints.append(Waypoint(lane.startLanePoints[rightS][0], lane.startLanePoints[rightS][1] + extension_l, 13, ignore=True))
         else:
             # exit is on the other lane
             self.objectiveDirection = const.FORWARD
@@ -273,7 +273,7 @@ class Vehicle(GameRect):
 
         # radians that descripes inclination of direction from p1 to p2
         desiredDirection = const.GETRADIANS(self.position, objective.position)
-        if const.gauss(self.drunkenness,60) > 40:
+        if const.gauss(self.drunkenness, 60) > 40:
             # being drunk he is slower in reactions
             # he can turn randomly
             ### WE DON'T WANT A CAR THAT TURN 180 AND GO THE OPPOSITE WAY!! ###
@@ -323,7 +323,7 @@ class Vehicle(GameRect):
                                                                 const.FIFTEEN_PROPORTION,
                                                                 const.ROAD_LINE_THICKNESS)
 
-            if self.timeStop>400*self.tired_value and self.velocity<2:
+            if self.timeStop>300*self.tired_value and self.velocity<2:
                 # he changes his mind and prefers to go straight
                 lane = self.crossroad.getOppositeLanes(self)[0]
                 self.waypoints = [Waypoint(lane.endLanePoints[1][0], lane.endLanePoints[1][1], 60, checkTLight=True)]
@@ -397,6 +397,8 @@ class Vehicle(GameRect):
             # self.game.graphic_lib.graphic.draw.circle(self.game.graphic_lib.screen, const.RED_OFF, (int(points[2][0]), int(points[2][1])), 5)
             # self.game.graphic_lib.graphic.draw.circle(self.game.graphic_lib.screen, const.RED_OFF, (int(points[3][0]), int(points[3][1])), 5)
             # self.game.graphic_lib.graphic.display.update()
+
+            hasprec = False # used to remember when a car is stationary and is waiting when it has precedence
             for vehicle in allvehicles:
                 if skipVehicles or vehicle.id == self.id:
                     continue
@@ -410,28 +412,37 @@ class Vehicle(GameRect):
                         return
                     if const.GETRECTCOLLISION(points, vehicle.points):
                         collisionWarning = True
-                        if self.timeStop<300*self.tired_value:
+                        if self.crossroad.hasPrecedence(self,vehicle) or (not self.crossroad.hasPrecedence(vehicle, self) and self.id<vehicle.id):
+                            hasprec = True
+                        if hasprec and distance < 50:
+                            resAngle = const.GETRADIANS(self.position, vehicle.position)
+                            avoidx -= const.cos(resAngle) / distance * vehicle.width*20
+                            avoidy -= const.sin(resAngle) / distance * vehicle.height*20
+                        elif self.timeStop<200*self.tired_value:
                             resAngle = const.GETRADIANS(self.position,vehicle.position)
                             avoidx -= const.cos(resAngle) / distance * vehicle.width*2
                             avoidy -= const.sin(resAngle) / distance * vehicle.height*2
+                        elif self.timeStop>200*self.tired_value:
+                            resAngle = const.GETRADIANS(self.position, vehicle.position)
+                            avoidx -= const.cos(resAngle) / distance * vehicle.width*3.5
+                            avoidy -= const.sin(resAngle) / distance * vehicle.height*3.5
                         elif self.timeStop>1600*self.tired_value:
                             resAngle = const.GETRADIANS(self.position, vehicle.position)
                             avoidx -= const.cos(resAngle) / distance * vehicle.width*20
                             avoidy -= const.sin(resAngle) / distance * vehicle.height*20
-                        elif self.timeStop>300*self.tired_value:
-                            resAngle = const.GETRADIANS(self.position, vehicle.position)
-                            avoidx -= const.cos(resAngle) / distance * vehicle.width*3.5
-                            avoidy -= const.sin(resAngle) / distance * vehicle.height*3.5
             if collisionWarning:
-                if mindistance>40 and self.velocity<15:
+                if mindistance>40 and self.velocity<15 and not hasprec:
                     self.brake(max(brake, 1/mindistance))
-                elif self.timeStop<300*self.tired_value and (self.velocity>15 or mindistance<50):
+                elif self.timeStop<200*self.tired_value and (self.velocity>15 or mindistance<50) and not hasprec:
                     self.brake(max(brake, (1+self.velocity**4)*12/mindistance))
-                elif self.timeStop>1600*self.tired_value:
-                    self.brake(0)
-                elif self.timeStop>300*self.tired_value or mindistance>50:
-                    self.brake(max(brake, (1+self.velocity)*6/mindistance))
-                elif self.velocity<20:
+                elif self.timeStop>1600*self.tired_value or hasprec:
+                    # GO AHEAD!
+                    pass
+                elif (self.timeStop>200*self.tired_value or mindistance>50) and not hasprec:
+                    self.brake(1)
+                elif (self.timeStop>200*self.tired_value or mindistance>50) and hasprec:
+                    pass
+                elif self.velocity<20 and not hasprec:
                     self.brake(max(brake, 1/mindistance))
 
         deg = const.degrees(const.atan2(avoidy,avoidx))
